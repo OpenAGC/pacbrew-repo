@@ -1,5 +1,5 @@
 pkgname=ps5-payload-sdl2
-pkgver=2.30.12.r2.ga92de48
+pkgver=2.30.12.r5.ge5262f1
 pkgrel=1
 pkgdesc='SDL2 with the OpenAGC-accelerated PS5 renderer'
 arch=('any')
@@ -7,9 +7,9 @@ url='https://github.com/OpenAGC/SDL'
 license=('Zlib')
 options=(!strip libtool staticlibs)
 
-_commit=a92de489223ad23335fe7012bc488806d7a44d27
+_commit=e5262f15fa0f0ad512ecfa9d4a5dafeb07007334
 source=("SDL-${_commit}.tar.gz::https://github.com/OpenAGC/SDL/archive/${_commit}.tar.gz")
-sha256sums=('0ada955fe38acb93b3427b055355e81261bed47838e41a8104757057860dd191')
+sha256sums=('a1e70752cd1bc2a2783c56f5cc03db4bc425f37e80fd882682d3f2fd4f533909')
 
 groups=('ps5-payload-dev' 'ps5-payload-sdl2')
 depends=('ps5-payload-libsamplerate' 'ps5-payload-openagc')
