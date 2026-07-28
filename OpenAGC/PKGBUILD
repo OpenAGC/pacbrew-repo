@@ -1,0 +1,45 @@
+pkgname=ps5-payload-openagc
+pkgver=0.1.0.r20260728.g949ca76
+pkgrel=1
+pkgdesc='Open AGC graphics and VideoOut library for PS5 payloads'
+arch=('any')
+url='https://github.com/OpenAGC/OpenAGC'
+license=('MIT')
+options=(!strip libtool staticlibs)
+
+_commit=949ca76a4c0a4a5b3b7986a50d833c20aeaa69ab
+source=("OpenAGC-${_commit}.tar.gz::https://github.com/OpenAGC/OpenAGC/archive/${_commit}.tar.gz")
+sha256sums=('5f01d823bd82f59b3f05b9355b638a4f3a0dc889329fdec3329ebafdd4c7d840')
+
+groups=('ps5-payload-dev')
+makedepends=('ps5-payload-sdk')
+
+prepare() {
+    if [ -z "${PS5_PAYLOAD_SDK}" ]; then
+	export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
+    fi
+}
+
+build() {
+    source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    cd "OpenAGC-${_commit}"
+
+    ${CMAKE} -S . -B build \
+	-DCMAKE_BUILD_TYPE=Release \
+	-DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+	-DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+	-DOPENAGC_PLATFORM=prospero \
+	-DOPENAGC_BUILD_TESTS=OFF \
+	-DOPENAGC_BUILD_EXAMPLES=OFF \
+	-DOPENAGC_PACKAGE_PSBC=OFF \
+	-DOPENAGC_BUILD_PSBC=OFF
+    ${MAKE} -C build
+}
+
+package() {
+    source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    cd "OpenAGC-${_commit}"
+
+    DESTDIR="${pkgdir}/${PS5_SYSROOT}" ${CMAKE} --install build
+    ${PS5_CROSS_FIX_ROOT} "${pkgdir}/${PS5_SYSROOT}/${PREFIX}"
+}

@@ -1,5 +1,8 @@
 # pacbrew-repo
 
+The OpenAGC graphics package chain and its Mesa compatibility notes are
+documented in [docs/openagc-vulkan-ps5.md](docs/openagc-vulkan-ps5.md).
+
 ## Prerequisites
 On Debian-flavored operating systems, you can invoke the following commands to
 install dependencies used by pacbrew-repo.
@@ -16,4 +19,3 @@ john@localhost:ps5-payload-dev/pacbrew-repo$ sudo apt-get install cmake pkg-conf
 john@localhost:ps5-payload-dev/pacbrew-repo$ export MAKEFLAGS=-j8 # optionally build in parallel on 8 cores
 john@localhost:ps5-payload-dev/pacbrew-repo$ ./ci-libs.sh
 ```
-

@@ -1,0 +1,75 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -14,18 +14,12 @@ endif()
+ 
+ set(VULKAN_HEADERS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../Vulkan-Headers" CACHE PATH
+     "Path to a Vulkan-Headers checkout")
+-set(OPENAGC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../OpenAGC" CACHE PATH
+-    "Path to an OpenAGC checkout (required by Prospero consumers)")
+-set(OPENAGC_PSBC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../openagc-psbc" CACHE PATH
+-    "Path to openagc-psbc")
+-if(CMAKE_CROSSCOMPILING)
+-  set(_OPENAGC_PSBC_DEFAULT_LIBRARY
+-    "${OPENAGC_PSBC_ROOT}/libopenagc_psbc.prospero.a")
+-else()
+-  set(_OPENAGC_PSBC_DEFAULT_LIBRARY "${OPENAGC_PSBC_ROOT}/libopenagc_psbc.a")
+-endif()
+-set(OPENAGC_PSBC_LIBRARY "${_OPENAGC_PSBC_DEFAULT_LIBRARY}" CACHE FILEPATH
++set(OPENAGC_PSBC_INCLUDE_DIR "" CACHE PATH
++    "Path containing the installed openagc_psbc.h")
++set(OPENAGC_PSBC_LIBRARY "" CACHE FILEPATH
+     "Path to the openagc-psbc runtime compiler archive")
++find_path(OPENAGC_PSBC_INCLUDE_DIR openagc_psbc.h REQUIRED)
++find_library(OPENAGC_PSBC_LIBRARY NAMES openagc_psbc REQUIRED)
+ set(VULKAN_MEMORY_ALLOCATOR_ROOT
+     "${CMAKE_CURRENT_SOURCE_DIR}/../VulkanMemoryAllocator" CACHE PATH
+     "Path to VulkanMemoryAllocator (used by the Eden compatibility test only)")
+@@ -37,32 +31,16 @@ if(NOT EXISTS "${VULKAN_HEADERS_ROOT}/include/vulkan/vulkan_core.h")
+   message(FATAL_ERROR "Vulkan-Headers not found; set VULKAN_HEADERS_ROOT")
+ endif()
+ if(NOT TARGET Vulkan::Headers)
+-  add_library(Vulkan::Headers INTERFACE IMPORTED)
+-  set_target_properties(Vulkan::Headers PROPERTIES
+-    INTERFACE_INCLUDE_DIRECTORIES "${VULKAN_HEADERS_ROOT}/include")
++  find_package(VulkanHeaders CONFIG REQUIRED)
+ endif()
+ 
+ if(NOT TARGET OpenAGC::openagc)
+-  if(NOT EXISTS "${OPENAGC_ROOT}/CMakeLists.txt")
+-    message(FATAL_ERROR "OpenAGC not found; set OPENAGC_ROOT")
+-  endif()
+-  set(OPENAGC_BUILD_TESTS OFF CACHE BOOL "Build OpenAGC tests" FORCE)
+-  set(OPENAGC_BUILD_EXAMPLES OFF CACHE BOOL "Build OpenAGC examples" FORCE)
+-  set(OPENAGC_PACKAGE_PSBC OFF CACHE BOOL "Package openagc-psbc" FORCE)
+-  add_subdirectory("${OPENAGC_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/openagc"
+-    EXCLUDE_FROM_ALL)
+-endif()
+-if(NOT EXISTS "${OPENAGC_PSBC_ROOT}/libopenagc_psbc/openagc_psbc.h")
+-  message(FATAL_ERROR "openagc-psbc headers not found; set OPENAGC_PSBC_ROOT")
+-endif()
+-if(NOT EXISTS "${OPENAGC_PSBC_LIBRARY}")
+-  message(FATAL_ERROR
+-    "openagc-psbc library not found; build it or set OPENAGC_PSBC_LIBRARY")
++  find_package(OpenAGC CONFIG REQUIRED)
+ endif()
+ add_library(OpenAgcPsbc::Compiler STATIC IMPORTED)
+ set_target_properties(OpenAgcPsbc::Compiler PROPERTIES
+   IMPORTED_LOCATION "${OPENAGC_PSBC_LIBRARY}"
+-  INTERFACE_INCLUDE_DIRECTORIES "${OPENAGC_PSBC_ROOT}/libopenagc_psbc"
++  INTERFACE_INCLUDE_DIRECTORIES "${OPENAGC_PSBC_INCLUDE_DIR}"
+   INTERFACE_LINK_LIBRARIES "${OPENAGC_PSBC_RUNTIME_LIBRARIES}")
+ 
+ add_library(vulkan_ps5_objects OBJECT
+@@ -776,11 +754,6 @@ if(VULKAN_PS5_BUILD_SHARED)
+   install(TARGETS vulkan_ps5_icd LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+ endif()
+ install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+-install(FILES "${OPENAGC_PSBC_LIBRARY}"
+-  DESTINATION ${CMAKE_INSTALL_LIBDIR} RENAME libopenagc_psbc.a)
+-install(FILES "${OPENAGC_PSBC_ROOT}/libopenagc_psbc/openagc_psbc.h"
+-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+-
+ configure_package_config_file(cmake/VulkanPS5Config.cmake.in
+   "${CMAKE_CURRENT_BINARY_DIR}/VulkanPS5Config.cmake"
+   INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/VulkanPS5")

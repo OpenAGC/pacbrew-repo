@@ -1,0 +1,62 @@
+pkgname=ps5-payload-vulkan-ps5
+pkgver=0.1.0.r20260728.gdce283a
+pkgrel=1
+pkgdesc='OpenAGC-backed Vulkan implementation for PS5 payloads'
+arch=('any')
+url='https://github.com/OpenAGC/Vulkan-PS5'
+license=('MIT')
+options=(!strip libtool staticlibs)
+
+_commit=dce283a815f49ea110efa6e6eb338a62e209f648
+source=("Vulkan-PS5-${_commit}.tar.gz::https://github.com/OpenAGC/Vulkan-PS5/archive/${_commit}.tar.gz"
+	'pacbrew-installed-dependencies.patch')
+sha256sums=('70e2990f141615289e37255264a08a1eead87260e4e512d23ae72ec21e1d3304'
+	'97ea38027fad63050df46d4566e6696fb71da57450c11b1fa970dcbeee3bef94')
+
+groups=('ps5-payload-dev')
+depends=('ps5-payload-libcxx' 'ps5-payload-openagc'
+	'ps5-payload-vulkan-headers')
+makedepends=('ps5-payload-sdk')
+
+prepare() {
+    if [ -z "${PS5_PAYLOAD_SDK}" ]; then
+	export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
+    fi
+
+    if [ ! -f "${PS5_PAYLOAD_SDK}/target/user/homebrew/include/openagc_psbc.h" ] ||
+       [ ! -f "${PS5_PAYLOAD_SDK}/target/user/homebrew/lib/libopenagc_psbc.a" ]; then
+	echo 'Vulkan-PS5 requires an installed OpenAGC PSBC Prospero runtime.' >&2
+	echo 'Mesa 22.1.7 is not a compatible substitute for that compiler.' >&2
+	return 1
+    fi
+
+    cd "Vulkan-PS5-${_commit}"
+    patch -Np1 -i "${srcdir}/pacbrew-installed-dependencies.patch"
+}
+
+build() {
+    source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    cd "Vulkan-PS5-${_commit}"
+
+    ${CMAKE} -S . -B build \
+	-DCMAKE_BUILD_TYPE=Release \
+	-DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+	-DCMAKE_PREFIX_PATH="${PS5_SYSROOT}${PREFIX}" \
+	-DVulkanHeaders_DIR="${PS5_SYSROOT}${PREFIX}/share/cmake/VulkanHeaders" \
+	-DOpenAGC_DIR="${PS5_SYSROOT}${PREFIX}/lib/cmake/OpenAGC" \
+	-DVULKAN_HEADERS_ROOT="${PS5_SYSROOT}${PREFIX}" \
+	-DOPENAGC_PSBC_INCLUDE_DIR="${PS5_SYSROOT}${PREFIX}/include" \
+	-DOPENAGC_PSBC_LIBRARY="${PS5_SYSROOT}${PREFIX}/lib/libopenagc_psbc.a" \
+	-DVULKAN_PS5_BUILD_SHARED=OFF \
+	-DVULKAN_PS5_BUILD_TESTS=OFF \
+	-DVULKAN_PS5_BUILD_EXAMPLES=OFF
+    ${MAKE} -C build
+}
+
+package() {
+    source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    cd "Vulkan-PS5-${_commit}"
+
+    DESTDIR="${pkgdir}/${PS5_SYSROOT}" ${CMAKE} --install build
+    ${PS5_CROSS_FIX_ROOT} "${pkgdir}/${PS5_SYSROOT}/${PREFIX}"
+}
