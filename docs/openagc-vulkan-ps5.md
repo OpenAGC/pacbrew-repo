@@ -13,6 +13,12 @@ examples, and bundled PSBC packaging disabled. The dedicated
 `ps5-payload-openagc-psbc` recipe builds the runtime compiler archive and
 installs its public header before Vulkan-PS5 is configured.
 
+The current OpenAGC pin exposes explicit gfx1013 Wave32 and Wave64 compute
+dispatch modes. The matching Vulkan-PS5 pin includes hardware-qualified shader
+cull distance, extended image gather, fragment and vertex-pipeline stores and
+atomics, and variable-pointer feature reporting. These two pins are updated as
+a pair because Vulkan-PS5 consumes OpenAGC's public command-state API.
+
 The pinned `openagc-psbc` archive now contains its Mesa compiler sources and
 generated-header inputs directly. It does not use sibling source repositories,
 symlinks, submodules, or pacbrew's Mesa package. Its Prospero build regenerates
