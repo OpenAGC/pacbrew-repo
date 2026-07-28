@@ -45,3 +45,27 @@ Vulkan-PS5 uses installed dependencies from the payload sysroot. Its small
 pacbrew patch replaces sibling-source assumptions with `find_package` and
 installed header/library lookup, and avoids duplicating files owned by the PSBC
 package.
+
+## OpenAGC SDL2 consumers
+
+The `ps5-payload-sdl2` recipe uses an immutable OpenAGC/SDL source archive and
+builds it with `SDL_PS5_OPENAGC=ON`. It depends on
+`ps5-payload-openagc`, uses the installed `OpenAGCConfig.cmake`, and installs
+`prospero-sdl2-config` for packages that use SDL's traditional configure
+interface. OpenAGC remains responsible for deciding whether the target can use
+its renderer; SDL retains its software presentation fallback when accelerated
+renderer creation fails.
+
+The SDL2 extension recipes (`SDL2_gfx`, `SDL2_image`, `SDL2_mixer`, `SDL2_net`,
+and `SDL2_ttf`) select that wrapper explicitly. `SDL2_kitchensink` and the
+CMake-based consumers `devilutionx`, `imgui`, `openal`, and `rmlui` select the
+installed SDL2 CMake package explicitly. The Autotools consumers `love`,
+`mednafen`, and `scummvm` use the Prospero wrapper, while `ffmpeg` now enables
+its SDL2 integration and declares SDL2 as a runtime dependency.
+
+LakeSnes, offact, FBNeo, and EDuke32 already select
+`prospero-sdl2-config` in their upstream PS5 build files, so installing this
+repository's `ps5-payload-sdl2` package routes them to the same OpenAGC-enabled
+SDL without recipe patches. LBreakoutHD no longer replaces
+`SDL_RENDERER_ACCELERATED` with `SDL_RENDERER_SOFTWARE`, allowing SDL to select
+the OpenAGC renderer on supported targets.

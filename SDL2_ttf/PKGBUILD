@@ -20,6 +20,7 @@ prepare() {
 
 build() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    export SDL2_CONFIG="${PS5_PAYLOAD_SDK}/bin/prospero-sdl2-config"
     cd SDL2_ttf-$pkgver
 
     # harfbuzz is currently crashing when used with SDL2_ttf

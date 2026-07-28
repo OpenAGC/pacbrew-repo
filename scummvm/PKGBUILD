@@ -24,6 +24,7 @@ prepare() {
 
 build() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    export SDL2_CONFIG="${PS5_PAYLOAD_SDK}/bin/prospero-sdl2-config"
     cd scummvm-${pkgver}
 
     export PKG_CONFIG_DIR=
@@ -33,7 +34,7 @@ build() {
     
     ./configure --prefix="${PREFIX}" --host=x86_64-pc-freebsd \
 		--enable-static --enable-release --enable-all-engines \
-		--with-sdl-prefix="${PS5_PAYLOAD_SDK}/target/user/homebrew/bin" \
+		--with-sdl-prefix="${PS5_SYSROOT}${PREFIX}" \
 		--with-libcurl-prefix="${PS5_PAYLOAD_SDK}/target/user/homebrew/bin" \
 		--with-freetype2-prefix="${PS5_PAYLOAD_SDK}/target/user/homebrew/bin" \
 		--enable-vkeybd

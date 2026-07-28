@@ -23,6 +23,7 @@ build() {
     cd RmlUi-$pkgver
 
     ${CMAKE} -DCMAKE_BUILD_TYPE=Release \
+	     -DSDL2_DIR="${PS5_SYSROOT}${PREFIX}/lib/cmake/SDL2" \
 	     -DRMLUI_LUA_BINDINGS=YES \
 	     -DRML_LUA_BINDINGS_LIBRARY=luajit \
 	     -B build \

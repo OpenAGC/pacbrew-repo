@@ -28,6 +28,7 @@ build() {
     cd SDL_kitchensink-$pkgver$_tagsuffix
 
     ${CMAKE} -DCMAKE_BUILD_TYPE=Release \
+	     -DSDL2_DIR="${PS5_SYSROOT}${PREFIX}/lib/cmake/SDL2" \
 	     -DBUILD_STATIC=YES \
 	     -DBUILD_SHARED=NO \
 	     -B build \

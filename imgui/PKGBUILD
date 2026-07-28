@@ -34,6 +34,7 @@ build() {
     cd imgui-$pkgver
 
     ${CMAKE} -DCMAKE_BUILD_TYPE=Release \
+	     -DSDL2_DIR="${PS5_SYSROOT}${PREFIX}/lib/cmake/SDL2" \
 	     -DIMGUI_BUILD_SDL2_BINDING=YES \
 	     -DIMGUI_BUILD_SDL2_RENDERER_BINDING=YES \
 	     -B build \

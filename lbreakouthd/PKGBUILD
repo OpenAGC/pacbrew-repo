@@ -21,13 +21,12 @@ prepare() {
 
     sed -i 's|AC_FUNC_MALLOC||g' configure.ac
     sed -i 's|AC_FUNC_REALLOC||g' configure.ac
-    sed -i 's|SDL_RENDERER_ACCELERATED|SDL_RENDERER_SOFTWARE|g' src/sdl.cpp
-
     autoreconf -fi
 }
 
 build() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    export SDL2_CONFIG="${PS5_PAYLOAD_SDK}/bin/prospero-sdl2-config"
     cd lbreakouthd-$pkgver
 
     export LDFLAGS="$($PS5_PAYLOAD_SDK/bin/prospero-sdl2-config --libs)"

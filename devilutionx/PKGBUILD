@@ -24,6 +24,7 @@ build() {
     cd devilutionx-src-$pkgver
 
     ${CMAKE} -DCMAKE_BUILD_TYPE=Release \
+	     -DSDL2_DIR="${PS5_SYSROOT}${PREFIX}/lib/cmake/SDL2" \
 	     -DDISCORD_INTEGRATION=OFF \
 	     -DBUILD_TESTING=OFF \
 	     -DASAN=OFF \

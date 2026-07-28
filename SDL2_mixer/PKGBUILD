@@ -9,7 +9,8 @@ options=(!strip libtool staticlibs)
 source=("${url}/releases/download/release-${pkgver}/SDL2_mixer-${pkgver}.tar.gz")
 sha256sums=('SKIP')
 groups=('ps5-payload-dev' 'ps5-payload-sdl2')
-makedepends=('ps5-payload-sdk' 'ps5-payload-sdl2')
+depends=('ps5-payload-sdl2')
+makedepends=('ps5-payload-sdk')
 
 prepare() {
     if [ -z "${PS5_PAYLOAD_SDK}" ]; then
@@ -19,6 +20,7 @@ prepare() {
 
 build() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    export SDL2_CONFIG="${PS5_PAYLOAD_SDK}/bin/prospero-sdl2-config"
     cd SDL2_mixer-$pkgver
 
     ./configure --prefix="${PREFIX}" --host=x86_64-pc-freebsd \

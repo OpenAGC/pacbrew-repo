@@ -31,6 +31,7 @@ prepare() {
 
 build() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    export SDL2_CONFIG="${PS5_PAYLOAD_SDK}/bin/prospero-sdl2-config"
     cd mednafen
 
     ./configure --prefix="${PREFIX}" --host=x86_64-pc-freebsd \
