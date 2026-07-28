@@ -1,5 +1,5 @@
 pkgname=ps5-payload-openagc-psbc
-pkgver=0.1.0.r20260728.gab05655
+pkgver=0.1.0.r20260729.gb381c96
 pkgrel=1
 pkgdesc='OpenAGC runtime SPIR-V compiler for PS5 payloads'
 arch=('any')
@@ -7,9 +7,9 @@ url='https://github.com/OpenAGC/openagc-psbc'
 license=('MIT')
 options=(!strip libtool staticlibs)
 
-_commit=ab05655d118737e8ecf2da7f7261f31ef086ec93
+_commit=b381c96a9f11409279170c253bfb4d8fdd0f0d9f
 source=("openagc-psbc-${_commit}.tar.gz::https://github.com/OpenAGC/openagc-psbc/archive/${_commit}.tar.gz")
-sha256sums=('810a44f45c1b0362f9140d710135a6dc016bf87f16daf05a6f69d3c742350d2d')
+sha256sums=('9330d62706606d91995c2c3607b39d0938f119e3094b78d4b4d38c1dcf08cdb1')
 
 groups=('ps5-payload-dev')
 depends=('ps5-payload-libcxx')
