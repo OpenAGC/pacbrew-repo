@@ -11,7 +11,7 @@ john@localhost:ps5-payload-dev/pacbrew-repo$ sudo apt-get update && sudo apt-get
 john@localhost:ps5-payload-dev/pacbrew-repo$ sudo apt-get install cmake pkg-config meson \
     clang lld build-essential autoconf libtool yasm nasm bison flex  gperf pkgconf \
     libarchive-tools autopoint po4a git curl doxygen makepkg pacman-package-manager \
-    python3-mako python3-glad
+    python3-mako python3-yaml python3-glad
 ```
 
 ## Building and installing to /opt/ps5-payload-sdk

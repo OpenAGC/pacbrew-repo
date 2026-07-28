@@ -1,0 +1,43 @@
+pkgname=ps5-payload-openagc-psbc
+pkgver=0.1.0.r20260728.gab05655
+pkgrel=1
+pkgdesc='OpenAGC runtime SPIR-V compiler for PS5 payloads'
+arch=('any')
+url='https://github.com/OpenAGC/openagc-psbc'
+license=('MIT')
+options=(!strip libtool staticlibs)
+
+_commit=ab05655d118737e8ecf2da7f7261f31ef086ec93
+source=("openagc-psbc-${_commit}.tar.gz::https://github.com/OpenAGC/openagc-psbc/archive/${_commit}.tar.gz")
+sha256sums=('810a44f45c1b0362f9140d710135a6dc016bf87f16daf05a6f69d3c742350d2d')
+
+groups=('ps5-payload-dev')
+depends=('ps5-payload-libcxx')
+makedepends=('ps5-payload-sdk' 'ps5-payload-openagc'
+	'ps5-payload-vulkan-headers')
+
+prepare() {
+    if [ -z "${PS5_PAYLOAD_SDK}" ]; then
+	export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
+    fi
+}
+
+build() {
+    source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    cd "openagc-psbc-${_commit}"
+
+    ${MAKE} -f Makefile.prospero \
+	OPENAGC_INCLUDE="${PS5_SYSROOT}${PREFIX}/include" \
+	VULKAN_INCLUDE="${PS5_SYSROOT}${PREFIX}/include" \
+	PROSPERO_LIBCXX_INCLUDE="${PS5_SYSROOT}/include/c++/v1"
+}
+
+package() {
+    source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    cd "openagc-psbc-${_commit}"
+
+    install -Dm644 libopenagc_psbc.prospero.a \
+	"${pkgdir}/${PS5_SYSROOT}${PREFIX}/lib/libopenagc_psbc.a"
+    install -Dm644 libopenagc_psbc/openagc_psbc.h \
+	"${pkgdir}/${PS5_SYSROOT}${PREFIX}/include/openagc_psbc.h"
+}

@@ -15,7 +15,7 @@ sha256sums=('70e2990f141615289e37255264a08a1eead87260e4e512d23ae72ec21e1d3304'
 
 groups=('ps5-payload-dev')
 depends=('ps5-payload-libcxx' 'ps5-payload-openagc'
-	'ps5-payload-vulkan-headers')
+	'ps5-payload-openagc-psbc' 'ps5-payload-vulkan-headers')
 makedepends=('ps5-payload-sdk')
 
 prepare() {

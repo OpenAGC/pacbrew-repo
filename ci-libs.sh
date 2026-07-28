@@ -4,7 +4,7 @@ SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}")"
 SCRIPT_DIR="$(dirname "${SCRIPT_PATH}")"
 
 PKGS=(sdk openlibm libcxx openmp fast_float fmt
-      Vulkan-Headers OpenAGC
+      Vulkan-Headers OpenAGC openagc-psbc Vulkan-PS5
       bzip2 zlib libminizip xz zstd libarchive libdeflate
       openssl libssh
       libevent libiconv libfribidi libpsl

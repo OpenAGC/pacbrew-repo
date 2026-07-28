@@ -4,26 +4,30 @@ The buildable graphics packages are built in this order:
 
 1. `ps5-payload-vulkan-headers`
 2. `ps5-payload-openagc`
+3. `ps5-payload-openagc-psbc`
+4. `ps5-payload-vulkan-ps5`
 
-Both recipes use immutable commit archives with SHA-256 checksums. OpenAGC is
-configured for Prospero with position-independent code enabled and tests,
-examples, and PSBC packaging disabled.
+All four recipes use immutable commit archives with SHA-256 checksums. OpenAGC
+is configured for Prospero with position-independent code enabled and tests,
+examples, and bundled PSBC packaging disabled. The dedicated
+`ps5-payload-openagc-psbc` recipe builds the runtime compiler archive and
+installs its public header before Vulkan-PS5 is configured.
 
-The `Vulkan-PS5` folder contains a pinned static-ICD recipe, but it is not yet
-in `ci-libs.sh`. It requires `openagc_psbc.h` and
-`libopenagc_psbc.a` to be installed in the payload SDK first. Upstream
-`openagc-psbc` currently relies on external standalone compiler sources and
-does not provide a self-contained immutable release archive, so this repository
-does not pretend to build it from an unrelated source tree. Add Vulkan-PS5 to
-the CI package list once that prerequisite has a reproducible package.
+The pinned `openagc-psbc` archive now contains its Mesa compiler sources and
+generated-header inputs directly. It does not use sibling source repositories,
+symlinks, submodules, or pacbrew's Mesa package. Its Prospero build regenerates
+the derived Mesa sources and produces `libopenagc_psbc.a` from the immutable
+archive. Vulkan-PS5 and the compiler package are therefore both enabled in
+`ci-libs.sh` in dependency order.
 
 ## Mesa 22.1.7 compatibility
 
-`openagc-psbc` should remain on its upstream compiler snapshot. It does
-not compile against or link to pacbrew's Mesa 22.1.7 package: it carries the
-Mesa 26.2 compiler sources required by its private NIR, SPIR-V, ACO, and RADV
-interfaces. Those internal interfaces are not stable across Mesa releases, so
-substituting Mesa 22.1.7 is not supported without a dedicated compiler port.
+`openagc-psbc` remains on its upstream compiler snapshot. It does not compile
+against or link to pacbrew's Mesa 22.1.7 package: its immutable source archive
+carries the Mesa 26.2 compiler sources required by its private NIR, SPIR-V,
+ACO, and RADV interfaces. Those internal interfaces are not stable across Mesa
+releases, so substituting Mesa 22.1.7 is not supported without a dedicated
+compiler port.
 
 The existing Mesa 22.1.7 package remains the independent swrast/OSMesa
 implementation. Installing both packages is supported because neither package
@@ -38,8 +42,8 @@ the target application before being treated as supported.
   externally installed PSBC runtime.
 - `ps5-payload-vulkan-headers` supplies Vulkan headers and its CMake config.
 - `ps5-payload-openagc` supplies the public graphics and VideoOut library.
-- An installed OpenAGC PSBC Prospero header and archive are required before
-  building the Vulkan-PS5 recipe.
+- `ps5-payload-openagc-psbc` supplies the Prospero runtime compiler header and
+  archive required by Vulkan-PS5.
 
 Vulkan-PS5 uses installed dependencies from the payload sysroot. Its small
 pacbrew patch replaces sibling-source assumptions with `find_package` and
