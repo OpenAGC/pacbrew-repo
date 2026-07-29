@@ -1,5 +1,5 @@
 pkgname=ps5-payload-vulkan-ps5
-pkgver=0.1.0.r20260729.gff75686
+pkgver=0.1.0.r20260729.gb783205
 pkgrel=1
 pkgdesc='OpenAGC-backed Vulkan implementation for PS5 payloads'
 arch=('any')
@@ -7,10 +7,10 @@ url='https://github.com/OpenAGC/Vulkan-PS5'
 license=('MIT')
 options=(!strip libtool staticlibs)
 
-_commit=ff7568693a64d050f965791123bb0bee1599b18b
+_commit=b783205ad8e1cfa56e75922a8b480d2d835fc27b
 source=("Vulkan-PS5-${_commit}.tar.gz::https://github.com/OpenAGC/Vulkan-PS5/archive/${_commit}.tar.gz"
 	'pacbrew-installed-dependencies.patch')
-sha256sums=('d114479e15bef57e8fe2091188e8e293a6ad5c6e245c926c888ddc87292ebee8'
+sha256sums=('baa4851e2854e0c367172f321cd4b3b67472f45d1e98ceb82ced1df50fe11091'
 	'97ea38027fad63050df46d4566e6696fb71da57450c11b1fa970dcbeee3bef94')
 
 groups=('ps5-payload-dev')

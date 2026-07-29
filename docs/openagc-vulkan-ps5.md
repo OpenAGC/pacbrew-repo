@@ -19,6 +19,15 @@ cull distance, extended image gather, fragment and vertex-pipeline stores and
 atomics, and variable-pointer feature reporting. These two pins are updated as
 a pair because Vulkan-PS5 consumes OpenAGC's public command-state API.
 
+The OpenAGC 0.2.0 pin also provides `agcDriverShutdown` and releases
+system-flexible allocations with `sceKernelReleaseFlexibleMemory`. SDL2 calls
+that lifecycle boundary on normal destruction and partial renderer creation
+failure, preventing repeated WebSrv launches from consuming the global
+flexible-memory quota. The paired SDL2 pin uses GPU scanout copies, bounded
+submission failure latching, and exact renderer-selection probes. The
+Vulkan-PS5 pin fixes retirement of the active VideoOut image before swapchain
+presentation resources are destroyed.
+
 The pinned `openagc-psbc` archive now contains its Mesa compiler sources and
 generated-header inputs directly. It does not use sibling source repositories,
 symlinks, submodules, or pacbrew's Mesa package. Its Prospero build regenerates
