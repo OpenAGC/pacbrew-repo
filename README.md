@@ -1,6 +1,7 @@
 # pacbrew-repo
 
-The OpenAGC graphics package chain and its Mesa compatibility notes are
+The OpenAGC graphics package chain, pinned Mesa-Zink runtime, SDL integration,
+and Mesa compatibility notes are
 documented in [docs/openagc-vulkan-ps5.md](docs/openagc-vulkan-ps5.md).
 
 ## Prerequisites

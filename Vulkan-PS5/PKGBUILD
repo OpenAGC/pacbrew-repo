@@ -1,5 +1,5 @@
 pkgname=ps5-payload-vulkan-ps5
-pkgver=0.1.0.r20260729.gb783205
+pkgver=0.1.0.r20260801.g2e63641
 pkgrel=1
 pkgdesc='OpenAGC-backed Vulkan implementation for PS5 payloads'
 arch=('any')
@@ -9,8 +9,10 @@ options=(!strip libtool staticlibs)
 
 _commit=b783205ad8e1cfa56e75922a8b480d2d835fc27b
 source=("Vulkan-PS5-${_commit}.tar.gz::https://github.com/OpenAGC/Vulkan-PS5/archive/${_commit}.tar.gz"
+	'native-runtime-migration.patch'
 	'pacbrew-installed-dependencies.patch')
 sha256sums=('baa4851e2854e0c367172f321cd4b3b67472f45d1e98ceb82ced1df50fe11091'
+	'1490605bded5d1a823d74ade9c5a5d9ca0fb581c083193b917bfecd5984b170b'
 	'97ea38027fad63050df46d4566e6696fb71da57450c11b1fa970dcbeee3bef94')
 
 groups=('ps5-payload-dev')
@@ -31,6 +33,7 @@ prepare() {
     fi
 
     cd "Vulkan-PS5-${_commit}"
+    patch -Np1 -i "${srcdir}/native-runtime-migration.patch"
     patch -Np1 -i "${srcdir}/pacbrew-installed-dependencies.patch"
 }
 
@@ -47,7 +50,7 @@ build() {
 	-DVULKAN_HEADERS_ROOT="${PS5_SYSROOT}${PREFIX}" \
 	-DOPENAGC_PSBC_INCLUDE_DIR="${PS5_SYSROOT}${PREFIX}/include" \
 	-DOPENAGC_PSBC_LIBRARY="${PS5_SYSROOT}${PREFIX}/lib/libopenagc_psbc.a" \
-	-DVULKAN_PS5_BUILD_SHARED=OFF \
+	-DVULKAN_PS5_BUILD_SHARED=ON \
 	-DVULKAN_PS5_BUILD_TESTS=OFF \
 	-DVULKAN_PS5_BUILD_EXAMPLES=OFF
     ${MAKE} -C build

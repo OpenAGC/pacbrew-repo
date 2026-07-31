@@ -1,5 +1,5 @@
 pkgname=ps5-payload-sdl2
-pkgver=2.30.12.r15.g9b196b4
+pkgver=2.30.12.r20260801.gf738624
 pkgrel=1
 pkgdesc='SDL2 with the OpenAGC-accelerated PS5 renderer'
 arch=('any')
@@ -7,18 +7,24 @@ url='https://github.com/OpenAGC/SDL'
 license=('Zlib')
 options=(!strip libtool staticlibs)
 
-_commit=9b196b46c4866d293c4bc7ee696c83b46ec421c3
-source=("SDL-${_commit}.tar.gz::https://github.com/OpenAGC/SDL/archive/${_commit}.tar.gz")
-sha256sums=('9cb3b5602767e3be409acec8369b6332bde7acd8df8cc993ebc5e8141ae530d2')
+_commit=0baf4ac49382b537ba449901b5b6d0d189bb1fbb
+source=("SDL-${_commit}.tar.gz::https://github.com/ps5-payload-dev/SDL/archive/${_commit}.tar.gz"
+	'openagc-zink-integration.patch')
+sha256sums=('cdcf926356a494d43369da2ba204fe7b4d746bc99b324a88656f0beac1cd8e57'
+	'e6bf5316f1c3ecdfd51304929d4ae61bbc169aafe01d8f57472903b621d08372')
 
 groups=('ps5-payload-dev' 'ps5-payload-sdl2')
-depends=('ps5-payload-libsamplerate' 'ps5-payload-openagc')
+depends=('ps5-payload-libsamplerate' 'ps5-payload-openagc'
+	'ps5-payload-vulkan-ps5' 'ps5-payload-mesa-zink')
 makedepends=('ps5-payload-sdk' 'ps5-payload-libcxx')
 
 prepare() {
     if [ -z "${PS5_PAYLOAD_SDK}" ]; then
 	export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
     fi
+
+    cd "SDL-${_commit}"
+    patch -Np1 -i "${srcdir}/openagc-zink-integration.patch"
 }
 
 build() {
@@ -30,6 +36,7 @@ build() {
 	-DCMAKE_INSTALL_PREFIX="${PREFIX}" \
 	-DOpenAGC_DIR="${PS5_SYSROOT}${PREFIX}/lib/cmake/OpenAGC" \
 	-DSDL_PS5_OPENAGC=ON \
+	-DSDL_PS5_ZINK=ON \
 	-DSDL_OPENGL=YES \
 	-DSDL_LOADSO=YES
     ${MAKE} -C build

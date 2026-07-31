@@ -1,0 +1,235 @@
+diff --git a/meson.build b/meson.build
+index 9e5e145f..55de22f4 100644
+--- a/meson.build
++++ b/meson.build
+@@ -361,7 +361,7 @@ with_vdrm = [
+ ].contains(true)
+ 
+ with_dri = false
+-if with_gallium and (system_has_kms_drm or (with_gallium_zink and (freedreno_kmds.contains('kgsl') or host_machine.system() == 'darwin')))
++if with_gallium and (system_has_kms_drm or (with_gallium_zink and (freedreno_kmds.contains('kgsl') or host_machine.system() in ['darwin', 'prospero'])))
+   _glx = get_option('glx')
+   _egl = get_option('egl')
+   if _glx == 'dri' or _egl.enabled() or (_glx == 'disabled' and _egl.allowed())
+@@ -422,7 +422,7 @@ elif ['windows', 'cygwin'].contains(host_machine.system())
+   with_dri_platform = 'windows'
+ elif system_has_kms_drm
+   with_dri_platform = 'drm'
+-elif host_machine.system() == 'gnu' or (freedreno_kmds.contains('kgsl') and with_gallium_zink)
++elif host_machine.system() in ['gnu', 'prospero'] or (freedreno_kmds.contains('kgsl') and with_gallium_zink)
+   with_dri_platform = 'pseudo-drm'
+ else
+   # FIXME: haiku doesn't use dri, and xlib doesn't use dri, probably should
+@@ -1369,8 +1369,8 @@ else
+     _trial_cpp += ['-Werror=format', '-Wformat-security']
+   endif
+ 
+-  # FreeBSD annotated <pthread.h> but Mesa isn't ready
+-  if not (cc.get_id() == 'clang' and host_machine.system() == 'freebsd')
++  # FreeBSD and Prospero annotate <pthread.h> but Mesa isn't ready.
++  if not (cc.get_id() == 'clang' and host_machine.system() in ['freebsd', 'prospero'])
+     _trial_c += ['-Werror=thread-safety']
+   endif
+ 
+diff --git a/src/egl/meson.build b/src/egl/meson.build
+index e0db3293..bcc1144f 100644
+--- a/src/egl/meson.build
++++ b/src/egl/meson.build
+@@ -8,6 +8,10 @@ cpp_args_for_egl = []
+ link_args_for_egl = []
+ link_deps_for_egl = []
+ link_for_egl = []
++egl_install_rpath = []
++if host_machine.system() == 'prospero'
++  egl_install_rpath = '$ORIGIN'
++endif
+ if with_dri
+   link_for_egl += libgallium_dri
+ endif
+@@ -204,6 +208,7 @@ libegl = shared_library(
+   link_depends : [link_deps_for_egl],
+   dependencies : [deps_for_egl, dep_dl, dep_libdrm, dep_clock, dep_thread, idep_mesautil],
+   install : true,
++  install_rpath : egl_install_rpath,
+   version : egl_lib_version,
+   soversion : egl_lib_soversion,
+   name_prefix : host_machine.system() == 'windows' ? 'lib' : [],  # always use lib, but avoid warnings on !windows
+diff --git a/src/gallium/drivers/zink/zink_screen.c b/src/gallium/drivers/zink/zink_screen.c
+index c11c6a2c..365a382c 100644
+--- a/src/gallium/drivers/zink/zink_screen.c
++++ b/src/gallium/drivers/zink/zink_screen.c
+@@ -75,6 +75,8 @@ bool zink_tracing = false;
+ #define VK_LIBNAME "@rpath/libvulkan.1.dylib"
+ #elif DETECT_OS_ANDROID
+ #define VK_LIBNAME "libvulkan.so"
++#elif DETECT_OS_PROSPERO
++#define VK_LIBNAME "libvulkan_ps5.so"
+ #else
+ #define VK_LIBNAME "libvulkan.so.1"
+ #endif
+diff --git a/src/gallium/targets/dri/dri.sym.in b/src/gallium/targets/dri/dri.sym.in
+index d987668e..7ec01d66 100644
+--- a/src/gallium/targets/dri/dri.sym.in
++++ b/src/gallium/targets/dri/dri.sym.in
+@@ -6,8 +6,7 @@
+                 _mesa_glapi_get_proc_offset;
+                 _mesa_glapi_set_context;
+                 _mesa_glapi_set_dispatch;
+-                _mesa_glapi_tls_Context;
+-                _mesa_glapi_tls_Dispatch;
++                @glapi_tls_exports@
+ 
+ 		ddebug_screen_create;
+ 		noop_screen_create;
+diff --git a/src/gallium/targets/dri/meson.build b/src/gallium/targets/dri/meson.build
+index c526ffef..fc2cfcb6 100644
+--- a/src/gallium/targets/dri/meson.build
++++ b/src/gallium/targets/dri/meson.build
+@@ -12,6 +12,11 @@ gallium_dri_link_depends = []
+ gallium_dri_drivers = []
+ gallium_dri_link_with = []
+ gallium_dri_link_whole = []
++gallium_dri_install_rpath = []
++
++if host_machine.system() == 'prospero'
++  gallium_dri_install_rpath = '$ORIGIN'
++endif
+ 
+ if with_gallium_va
+   gallium_dri_link_with += [libgalliumvlwinsys]
+@@ -22,6 +27,13 @@ if host_machine.cpu_family() == 'x86' and not with_glx_read_only_text
+   gallium_dri_ld_args += [cc.get_supported_link_arguments('-Wl,--no-error-rwx-segments')]
+ endif
+ 
++if host_machine.system() == 'prospero'
++  # The Prospero toolchain uses compiler-emulated TLS, so these variables are
++  # represented by __emutls_* symbols rather than ordinary ELF TLS exports.
++  sym_config.set('glapi_tls_exports', '__emutls_t._mesa_glapi_tls_Context;\n                __emutls_t._mesa_glapi_tls_Dispatch;\n                __emutls_v._mesa_glapi_tls_Context;\n                __emutls_v._mesa_glapi_tls_Dispatch;')
++else
++  sym_config.set('glapi_tls_exports', '_mesa_glapi_tls_Context;\n                _mesa_glapi_tls_Dispatch;')
++endif
+ dri_sym = configure_file(input : 'dri.sym.in', output : 'dri.sym', configuration : sym_config)
+ 
+ if with_ld_version_script
+@@ -64,6 +76,7 @@ libgallium_dri = shared_library(
+     driver_asahi, driver_crocus, driver_rocket, driver_ethosu
+   ],
+   install : true,
++  install_rpath : gallium_dri_install_rpath,
+   name_suffix : libname_suffix,
+ )
+ 
+diff --git a/src/util/detect_os.h b/src/util/detect_os.h
+index 74037240..0f31917f 100644
+--- a/src/util/detect_os.h
++++ b/src/util/detect_os.h
+@@ -34,6 +34,10 @@
+ #define DETECT_OS_POSIX 1
+ #endif
+ 
++#if defined(__PROSPERO__)
++#define DETECT_OS_PROSPERO 1
++#endif
++
+ #if defined(__OpenBSD__)
+ #define DETECT_OS_OPENBSD 1
+ #define DETECT_OS_BSD 1
+@@ -98,6 +102,9 @@
+ #ifndef DETECT_OS_ANDROID
+ #define DETECT_OS_ANDROID 0
+ #endif
++#ifndef DETECT_OS_PROSPERO
++#define DETECT_OS_PROSPERO 0
++#endif
+ #ifndef DETECT_OS_APPLE
+ #define DETECT_OS_APPLE 0
+ #endif
+diff --git a/src/util/memstream.c b/src/util/memstream.c
+index bd909b78..06b66f84 100644
+--- a/src/util/memstream.c
++++ b/src/util/memstream.c
+@@ -40,6 +40,15 @@ u_memstream_open(struct u_memstream *mem, char **bufp, size_t *sizep)
+    mem->sizep = sizep;
+ 
+    return err == 0;
++#elif defined(__PROSPERO__)
++   mem->f = tmpfile();
++   mem->bufp = bufp;
++   mem->sizep = sizep;
++   if (mem->f) {
++      *bufp = NULL;
++      *sizep = 0;
++   }
++   return mem->f != NULL;
+ #elif defined(_WIN32)
+    bool success = false;
+ 
+@@ -70,7 +79,7 @@ u_memstream_open(struct u_memstream *mem, char **bufp, size_t *sizep)
+ #endif
+ }
+ 
+-#ifdef _WIN32
++#if defined(_WIN32) || defined(__PROSPERO__)
+ static void
+ u_memstream_update_buffer(struct u_memstream *mem)
+ {
+@@ -87,15 +96,17 @@ u_memstream_update_buffer(struct u_memstream *mem)
+    }
+    *mem->sizep = size;
+ }
+-#endif /* _WIN32 */
++#endif /* _WIN32 || __PROSPERO__ */
+ 
+ void
+ u_memstream_close(struct u_memstream *mem)
+ {
+    FILE *const f = mem->f;
+ 
+-#ifdef _WIN32
++#if defined(_WIN32) || defined(__PROSPERO__)
+    u_memstream_update_buffer(mem);
++#endif
++#ifdef _WIN32
+    remove(mem->temp);
+ #endif
+ 
+@@ -105,7 +116,7 @@ u_memstream_close(struct u_memstream *mem)
+ int
+ u_memstream_flush(struct u_memstream *mem)
+ {
+-#ifndef _WIN32
++#if !defined(_WIN32) && !defined(__PROSPERO__)
+    return fflush(mem->f);
+ #else
+    u_memstream_update_buffer(mem);
+diff --git a/src/util/memstream.h b/src/util/memstream.h
+index 42f374cd..7b4172f3 100644
+--- a/src/util/memstream.h
++++ b/src/util/memstream.h
+@@ -46,9 +46,11 @@ extern "C" {
+ struct u_memstream
+ {
+    FILE *f;
+-#ifdef _WIN32
++#if defined(_WIN32) || defined(__PROSPERO__)
+    char **bufp;
+    size_t *sizep;
++#endif
++#ifdef _WIN32
+    char temp[PATH_MAX];
+ #endif
+ };
+diff --git a/src/util/os_file.c b/src/util/os_file.c
+index 7d99383e..4eede0dc 100644
+--- a/src/util/os_file.c
++++ b/src/util/os_file.c
+@@ -224,6 +224,9 @@ os_read_file(const char *filename, size_t *size)
+ typedef void *kvaddr_t;
+ #elif DETECT_OS_FREEBSD
+ #include <sys/file.h>
++#if DETECT_OS_PROSPERO
++typedef void *kvaddr_t;
++#endif
+ #define kinfo_file xfile
+ #define f_pid xf_pid
+ #define f_fd xf_fd

@@ -6,15 +6,20 @@ The buildable graphics packages are built in this order:
 2. `ps5-payload-openagc`
 3. `ps5-payload-openagc-psbc`
 4. `ps5-payload-vulkan-ps5`
+5. `ps5-payload-mesa-zink`
+6. `ps5-payload-sdl2`
 
-All four recipes use immutable commit archives with SHA-256 checksums. OpenAGC
+All recipes use immutable commit archives and SHA-256-checked integration
+patches. OpenAGC
 is configured for Prospero with position-independent code enabled and tests,
 examples, and bundled PSBC packaging disabled. The dedicated
 `ps5-payload-openagc-psbc` recipe builds the runtime compiler archive and
 installs its public header before Vulkan-PS5 is configured.
 
 The current OpenAGC pin exposes explicit gfx1013 Wave32 and Wave64 compute
-dispatch modes. The matching Vulkan-PS5 pin includes hardware-qualified shader
+dispatch modes. The matching Vulkan-PS5 pin completes the native runtime
+migration and builds both the static implementation and `libvulkan_ps5.so`
+for Mesa's runtime loader. It includes hardware-qualified shader
 cull distance, extended image gather, fragment and vertex-pipeline stores and
 atomics, and variable-pointer feature reporting. These two pins are updated as
 a pair because Vulkan-PS5 consumes OpenAGC's public command-state API.
@@ -35,7 +40,7 @@ the derived Mesa sources and produces `libopenagc_psbc.a` from the immutable
 archive. Vulkan-PS5 and the compiler package are therefore both enabled in
 `ci-libs.sh` in dependency order.
 
-## Mesa 22.1.7 compatibility
+## Mesa runtime separation
 
 `openagc-psbc` remains on its upstream compiler snapshot. It does not compile
 against or link to pacbrew's Mesa 22.1.7 package: its immutable source archive
@@ -44,11 +49,18 @@ ACO, and RADV interfaces. Those internal interfaces are not stable across Mesa
 releases, so substituting Mesa 22.1.7 is not supported without a dedicated
 compiler port.
 
-The existing Mesa 22.1.7 package remains the independent swrast/OSMesa
-implementation. Installing both packages is supported because neither package
-declares or replaces the other's files. Linking both implementations into the
-same process has not been validated by these recipes and should be tested on
-the target application before being treated as supported.
+The existing `ps5-payload-mesa` 22.1.7 package remains the independent
+swrast/OSMesa implementation. The new `ps5-payload-mesa-zink` package pins the
+Mesa 26.3 development revision used by SDL's strict Zink work and installs only
+`libEGL.so` and its versioned Gallium/Zink module. It deliberately does not
+install GL/EGL headers or `libGL.so`, so it does not replace files owned by the
+OSMesa package.
+
+Installing both packages is supported. SDL still defaults to OSMesa; selecting
+Zink requires the exact `SDL_HINT_PS5_OPENGL_DRIVER=zink` hint. The Zink path
+loads the separately packaged `libvulkan_ps5.so`, while openagc-psbc continues
+to build its private Mesa 26.2 compiler snapshot. These three Mesa-derived
+components do not link to each other's private compiler interfaces.
 
 ## Requirements
 
@@ -59,6 +71,8 @@ the target application before being treated as supported.
 - `ps5-payload-openagc` supplies the public graphics and VideoOut library.
 - `ps5-payload-openagc-psbc` supplies the Prospero runtime compiler header and
   archive required by Vulkan-PS5.
+- `ps5-payload-vulkan-ps5` supplies the shared ICD loaded by Zink.
+- `ps5-payload-mesa-zink` supplies the pinned EGL/Zink runtime loaded by SDL.
 
 Vulkan-PS5 uses installed dependencies from the payload sysroot. Its small
 pacbrew patch replaces sibling-source assumptions with `find_package` and
@@ -67,13 +81,19 @@ package.
 
 ## OpenAGC SDL2 consumers
 
-The `ps5-payload-sdl2` recipe uses an immutable OpenAGC/SDL source archive and
-builds it with `SDL_PS5_OPENAGC=ON`. It depends on
-`ps5-payload-openagc`, uses the installed `OpenAGCConfig.cmake`, and installs
+The `ps5-payload-sdl2` recipe uses an immutable SDL source archive plus the
+SHA-256-checked OpenAGC/Zink integration patch and builds it with
+`SDL_PS5_OPENAGC=ON` and `SDL_PS5_ZINK=ON`. It depends on OpenAGC,
+Vulkan-PS5, and Mesa-Zink, uses the installed `OpenAGCConfig.cmake`, and installs
 `prospero-sdl2-config` for packages that use SDL's traditional configure
 interface. OpenAGC remains responsible for deciding whether the target can use
-its renderer; SDL retains its software presentation fallback when accelerated
-renderer creation fails.
+its native renderer. SDL retains its software and OSMesa paths; the Zink path
+is explicit and fail-closed until its hardware EGL/readback and visible WSI
+qualification gates are complete.
+
+`ci-libs.sh` builds Mesa-Zink after Vulkan-PS5 and before SDL2. The older Mesa
+22.1.7 package remains later in the list because it supplies the separate
+OSMesa fallback without owning any Mesa-Zink runtime file.
 
 The SDL2 extension recipes (`SDL2_gfx`, `SDL2_image`, `SDL2_mixer`, `SDL2_net`,
 and `SDL2_ttf`) select that wrapper explicitly. `SDL2_kitchensink` and the
