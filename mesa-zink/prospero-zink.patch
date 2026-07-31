@@ -1,3 +1,17 @@
+diff --git a/include/kopper_interface.h b/include/kopper_interface.h
+index 7e302771..f3f85f22 100644
+--- a/include/kopper_interface.h
++++ b/include/kopper_interface.h
+@@ -95,6 +95,9 @@ struct kopper_vk_surface_create_storage {
+ 
+ struct kopper_loader_info {
+    struct kopper_vk_surface_create_storage bos;
++   /* Stable loader-owned identity for window systems whose Vulkan surface
++    * create record has no native-window member (for example headless WSI). */
++   void *native_window;
+    int has_alpha;
+    int initial_swap_interval;
+    bool present_opaque;
 diff --git a/meson.build b/meson.build
 index 9e5e145f..55de22f4 100644
 --- a/meson.build
@@ -31,6 +45,230 @@ index 9e5e145f..55de22f4 100644
      _trial_c += ['-Werror=thread-safety']
    endif
  
+diff --git a/src/egl/drivers/dri2/platform_surfaceless.c b/src/egl/drivers/dri2/platform_surfaceless.c
+index 8fbb9a60..b6cdd7ca 100644
+--- a/src/egl/drivers/dri2/platform_surfaceless.c
++++ b/src/egl/drivers/dri2/platform_surfaceless.c
+@@ -25,11 +25,11 @@
+ 
+ #include <dlfcn.h>
+ #include <fcntl.h>
+-#include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+ #include <unistd.h>
+ #include "pipe/p_screen.h"
++#include "util/detect_os.h"
+ #include "util/libdrm.h"
+ #include <sys/stat.h>
+ #include <sys/types.h>
+@@ -108,7 +108,8 @@ surfaceless_image_get_buffers(struct dri_drawable *driDrawable, unsigned int for
+ 
+ static _EGLSurface *
+ dri2_surfaceless_create_surface(_EGLDisplay *disp, EGLint type,
+-                                _EGLConfig *conf, const EGLint *attrib_list)
++                                _EGLConfig *conf, const EGLint *attrib_list,
++                                void *native_surface)
+ {
+    struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
+    struct dri2_egl_config *dri2_conf = dri2_egl_config(conf);
+@@ -126,9 +127,16 @@ dri2_surfaceless_create_surface(_EGLDisplay *disp, EGLint type,
+    }
+ 
+    if (!dri2_init_surface(&dri2_surf->base, disp, type, conf, attrib_list,
+-                          false, NULL))
++                          false, native_surface))
+       goto cleanup_surface;
+-
++#if DETECT_OS_PROSPERO
++   if (type == EGL_WINDOW_BIT) {
++      /* Vulkan-PS5 exposes the firmware-neutral VideoOut mode as its fixed
++       * headless-surface extent. Keep EGL's drawable size identical. */
++      dri2_surf->base.Width = 1920;
++      dri2_surf->base.Height = 1080;
++   }
++#endif
+    config = dri2_get_dri_config(dri2_conf, type, dri2_surf->base.GLColorspace);
+ 
+    if (!config) {
+@@ -136,7 +144,6 @@ dri2_surfaceless_create_surface(_EGLDisplay *disp, EGLint type,
+                 "Unsupported surfacetype/colorspace configuration");
+       goto cleanup_surface;
+    }
+-
+    dri2_surf->visual = dri2_image_format_for_pbuffer_config(dri2_dpy, config);
+    if (dri2_surf->visual == PIPE_FORMAT_NONE)
+       goto cleanup_surface;
+@@ -170,12 +177,54 @@ dri2_surfaceless_create_pbuffer_surface(_EGLDisplay *disp, _EGLConfig *conf,
+                                         const EGLint *attrib_list)
+ {
+    return dri2_surfaceless_create_surface(disp, EGL_PBUFFER_BIT, conf,
+-                                          attrib_list);
++                                          attrib_list, NULL);
++}
++
++#if DETECT_OS_PROSPERO
++static _EGLSurface *
++dri2_surfaceless_create_window_surface(_EGLDisplay *disp, _EGLConfig *conf,
++                                       void *native_window,
++                                       const EGLint *attrib_list)
++{
++   if (!native_window || !dri2_egl_display(disp)->kopper) {
++      _eglError(EGL_BAD_NATIVE_WINDOW,
++                "surfaceless window surface requires Kopper");
++      return NULL;
++   }
++   return dri2_surfaceless_create_surface(disp, EGL_WINDOW_BIT, conf,
++                                          attrib_list, native_window);
++}
++
++static EGLBoolean
++dri2_surfaceless_swap_buffers(_EGLDisplay *disp, _EGLSurface *draw)
++{
++   struct dri2_egl_surface *dri2_surf = dri2_egl_surface(draw);
++   (void)disp;
++   kopperSwapBuffers(dri2_surf->dri_drawable,
++                     __DRI2_FLUSH_CONTEXT |
++                     __DRI2_FLUSH_INVALIDATE_ANCILLARY);
++   return EGL_TRUE;
+ }
+ 
++static EGLint
++dri2_surfaceless_query_buffer_age(_EGLDisplay *disp, _EGLSurface *surface)
++{
++   (void)disp;
++   return kopperQueryBufferAge(
++      dri2_egl_surface(surface)->dri_drawable);
++}
++#endif
++
+ static const struct dri2_egl_display_vtbl dri2_surfaceless_display_vtbl = {
++#if DETECT_OS_PROSPERO
++   .create_window_surface = dri2_surfaceless_create_window_surface,
++#endif
+    .create_pbuffer_surface = dri2_surfaceless_create_pbuffer_surface,
+    .destroy_surface = surfaceless_destroy_surface,
++#if DETECT_OS_PROSPERO
++   .swap_buffers = dri2_surfaceless_swap_buffers,
++   .query_buffer_age = dri2_surfaceless_query_buffer_age,
++#endif
+    .create_image = dri2_create_image_khr,
+    .get_dri_drawable = dri2_surface_get_dri_drawable,
+ };
+@@ -215,11 +264,69 @@ static const __DRIextension *swrast_loader_extensions[] = {
+    &image_lookup_extension.base, NULL,
+ };
+ 
++#if DETECT_OS_PROSPERO
++static void
++surfaceless_kopper_get_drawable_info(struct dri_drawable *draw,
++                                     int *width, int *height,
++                                     void *loader_private)
++{
++   struct dri2_egl_surface *dri2_surf = loader_private;
++   (void)draw;
++   *width = dri2_surf->base.Width;
++   *height = dri2_surf->base.Height;
++}
++
++static void
++surfaceless_kopper_set_surface_create_info(void *_draw,
++                                           struct kopper_loader_info *out)
++{
++   struct dri2_egl_surface *dri2_surf = _draw;
++   VkHeadlessSurfaceCreateInfoEXT *headless =
++      (VkHeadlessSurfaceCreateInfoEXT *)&out->bos;
++
++   headless->sType = VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT;
++   headless->pNext = NULL;
++   headless->flags = 0;
++   out->native_window = dri2_surf->base.NativeSurface;
++   out->present_opaque = dri2_surf->base.PresentOpaque;
++}
++
++static const __DRIkopperLoaderExtension
++surfaceless_kopper_loader_extension = {
++   .base = {__DRI_KOPPER_LOADER, 1},
++   .SetSurfaceCreateInfo = surfaceless_kopper_set_surface_create_info,
++   .GetDrawableInfo = surfaceless_kopper_get_drawable_info,
++};
++#endif
++
+ static const __DRIextension *kopper_loader_extensions[] = {
+-   &kopper_pbuffer_loader_extension.base, &image_lookup_extension.base,
++#if DETECT_OS_PROSPERO
++   &surfaceless_kopper_loader_extension.base,
++#else
++   &kopper_pbuffer_loader_extension.base,
++#endif
+    &image_lookup_extension.base, NULL,
+ };
+ 
++#if DETECT_OS_PROSPERO
++static void
++surfaceless_add_window_configs(_EGLDisplay *disp)
++{
++   struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
++
++   if (!dri2_dpy->kopper)
++      return;
++
++   for (unsigned i = 0; dri2_dpy->driver_configs[i] != NULL; i++) {
++      struct gl_config *config =
++         (struct gl_config *)dri2_dpy->driver_configs[i];
++      if (config->color_format == PIPE_FORMAT_BGRA8888_SRGB)
++         (void)dri2_add_config(disp, dri2_dpy->driver_configs[i],
++                               EGL_WINDOW_BIT, NULL);
++   }
++}
++#endif
++
+ static bool
+ surfaceless_probe_device(_EGLDisplay *disp, bool swrast, bool zink)
+ {
+@@ -389,8 +496,10 @@ dri2_initialize_surfaceless(_EGLDisplay *disp)
+     */
+    driver_loaded = surfaceless_probe_device(disp, disp->Options.ForceSoftware,
+                                             disp->Options.Zink);
+-   if (!driver_loaded && disp->Options.ForceSoftware) {
+-      _eglLog(_EGL_DEBUG, "Falling back to surfaceless swrast without DRM.");
++   if (!driver_loaded && (disp->Options.ForceSoftware || disp->Options.Zink)) {
++      _eglLog(_EGL_DEBUG,
++              "Falling back to surfaceless %s without DRM.",
++              disp->Options.Zink ? "zink" : "swrast");
+       driver_loaded = surfaceless_probe_device_sw(disp);
+    }
+ 
+@@ -407,6 +516,9 @@ dri2_initialize_surfaceless(_EGLDisplay *disp)
+    dri2_set_WL_bind_wayland_display(disp);
+ 
+    dri2_add_pbuffer_configs_for_visuals(disp);
++#if DETECT_OS_PROSPERO
++   surfaceless_add_window_configs(disp);
++#endif
+ 
+    /* Fill vtbl last to prevent accidentally calling virtual function during
+     * initialization.
+diff --git a/src/egl/main/eglapi.c b/src/egl/main/eglapi.c
+index fb5a8b6f..3f8ab561 100644
+--- a/src/egl/main/eglapi.c
++++ b/src/egl/main/eglapi.c
+@@ -1043,7 +1043,14 @@ _eglCreateWindowSurfaceCommon(_EGLDisplay *disp, EGLConfig config,
+    if (native_window == NULL)
+       RETURN_EGL_ERROR(disp, EGL_BAD_NATIVE_WINDOW, EGL_NO_SURFACE);
+ 
+-   if (disp && (disp->Platform == _EGL_PLATFORM_SURFACELESS ||
++   if (disp && (
++#if DETECT_OS_PROSPERO
++                /* Prospero's surfaceless display grows a narrow native-window
++                 * bridge whose Vulkan side is VK_EXT_headless_surface. */
++                false ||
++#else
++                disp->Platform == _EGL_PLATFORM_SURFACELESS ||
++#endif
+                 disp->Platform == _EGL_PLATFORM_DEVICE)) {
+       /* From the EGL_MESA_platform_surfaceless spec (v1):
+        *
 diff --git a/src/egl/meson.build b/src/egl/meson.build
 index e0db3293..bcc1144f 100644
 --- a/src/egl/meson.build
@@ -54,8 +292,135 @@ index e0db3293..bcc1144f 100644
    version : egl_lib_version,
    soversion : egl_lib_soversion,
    name_prefix : host_machine.system() == 'windows' ? 'lib' : [],  # always use lib, but avoid warnings on !windows
+diff --git a/src/gallium/drivers/zink/zink_batch.c b/src/gallium/drivers/zink/zink_batch.c
+index c615d47e..82557e0f 100644
+--- a/src/gallium/drivers/zink/zink_batch.c
++++ b/src/gallium/drivers/zink/zink_batch.c
+@@ -283,6 +283,9 @@ zink_label_cmd_buffer(struct zink_context *ctx, VkDevice device, VkCommandBuffer
+ {
+    struct zink_screen *screen = zink_screen(ctx->base.screen);
+ 
++   if (!VKSCR(SetDebugUtilsObjectNameEXT))
++      return;
++
+    VkDebugUtilsObjectNameInfoEXT name_info = {
+       .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+       .pNext = NULL,
+diff --git a/src/gallium/drivers/zink/zink_instance.py b/src/gallium/drivers/zink/zink_instance.py
+index 234d0ec0..db6a8c10 100755
+--- a/src/gallium/drivers/zink/zink_instance.py
++++ b/src/gallium/drivers/zink/zink_instance.py
+@@ -281,7 +281,7 @@ zink_create_instance(struct zink_screen *screen, struct zink_instance_info *inst
+    VkInstance instance;
+    VkResult err = vk_CreateInstance(&ici, NULL, &instance);
+    if (err != VK_SUCCESS) {
+-      if (!screen->driver_name_is_inferred)
++      if (!screen->driver_name_is_inferred || DETECT_OS_PROSPERO)
+           mesa_loge("ZINK: vkCreateInstance failed (%s)", vk_Result_to_str(err));
+ 
+       return NULL;
+diff --git a/src/gallium/drivers/zink/zink_kopper.c b/src/gallium/drivers/zink/zink_kopper.c
+index 950a89bf..a8d7cd50 100644
+--- a/src/gallium/drivers/zink/zink_kopper.c
++++ b/src/gallium/drivers/zink/zink_kopper.c
+@@ -51,8 +51,10 @@ zink_kopper_set_present_mode_for_interval(struct kopper_displaytarget *cdt, int
+       if (cdt->present_modes & BITFIELD_BIT(VK_PRESENT_MODE_IMMEDIATE_KHR) &&
+           cdt->type != KOPPER_WAYLAND)
+          cdt->present_mode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+-      else
++      else if (cdt->present_modes & BITFIELD_BIT(VK_PRESENT_MODE_MAILBOX_KHR))
+          cdt->present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
++      else
++         cdt->present_mode = VK_PRESENT_MODE_FIFO_KHR;
+    } else if (interval > 0) {
+       cdt->present_mode = VK_PRESENT_MODE_FIFO_KHR;
+    }
+@@ -80,6 +82,9 @@ init_dt_type(struct kopper_displaytarget *cdt)
+       cdt->type = KOPPER_WIN32;
+       break;
+ #endif
++   case VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT:
++      cdt->type = KOPPER_HEADLESS;
++      break;
+    default:
+       UNREACHABLE("unsupported!");
+    }
+@@ -119,6 +124,13 @@ kopper_CreateSurface(struct zink_screen *screen, struct kopper_displaytarget *cd
+       break;
+    }
+ #endif
++   case VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT: {
++      VkHeadlessSurfaceCreateInfoEXT *headless =
++         (VkHeadlessSurfaceCreateInfoEXT *)&cdt->info.bos;
++      error = VKSCR(CreateHeadlessSurfaceEXT)(screen->instance, headless,
++                                               NULL, &surface);
++      break;
++   }
+    default:
+       UNREACHABLE("unsupported!");
+    }
+@@ -235,6 +247,9 @@ find_dt_entry(struct zink_screen *screen, const struct kopper_displaytarget *cdt
+       break;
+    }
+ #endif
++   case KOPPER_HEADLESS:
++      he = _mesa_hash_table_search(&screen->dts, cdt->info.native_window);
++      break;
+    default:
+       UNREACHABLE("unsupported!");
+    }
+@@ -313,6 +328,7 @@ kopper_CreateSwapchain(struct zink_screen *screen, struct kopper_displaytarget *
+    switch (cdt->type) {
+    case KOPPER_X11:
+    case KOPPER_WIN32:
++   case KOPPER_HEADLESS:
+       /* With Xcb, minImageExtent, maxImageExtent, and currentExtent must always equal the window size.
+        * ...
+        * Due to above restrictions, it is only possible to create a new swapchain on this
+@@ -444,6 +460,7 @@ zink_kopper_displaytarget_create(struct zink_screen *screen, unsigned tex_usage,
+             break;
+          case KOPPER_WAYLAND:
+          case KOPPER_WIN32:
++         case KOPPER_HEADLESS:
+             _mesa_hash_table_init(&screen->dts, screen, _mesa_hash_pointer, _mesa_key_pointer_equal);
+             break;
+          default:
+@@ -516,6 +533,9 @@ zink_kopper_displaytarget_create(struct zink_screen *screen, unsigned tex_usage,
+       break;
+    }
+ #endif
++   case KOPPER_HEADLESS:
++      _mesa_hash_table_insert(&screen->dts, cdt->info.native_window, cdt);
++      break;
+    default:
+       UNREACHABLE("unsupported!");
+    }
+@@ -529,7 +549,8 @@ zink_kopper_displaytarget_create(struct zink_screen *screen, unsigned tex_usage,
+     * means we can't do async submit on Wayland.
+     */
+    cdt->async = util_queue_is_initialized(&screen->flush_queue) &&
+-                cdt->type != KOPPER_WAYLAND;
++                cdt->type != KOPPER_WAYLAND &&
++                cdt->type != KOPPER_HEADLESS;
+ 
+    *stride = cdt->stride;
+    return cdt;
+diff --git a/src/gallium/drivers/zink/zink_kopper.h b/src/gallium/drivers/zink/zink_kopper.h
+index d1971ecb..c1118627 100644
+--- a/src/gallium/drivers/zink/zink_kopper.h
++++ b/src/gallium/drivers/zink/zink_kopper.h
+@@ -74,7 +74,8 @@ struct kopper_swapchain {
+ enum kopper_type {
+    KOPPER_X11,
+    KOPPER_WAYLAND,
+-   KOPPER_WIN32
++   KOPPER_WIN32,
++   KOPPER_HEADLESS
+ };
+ 
+ struct kopper_displaytarget
 diff --git a/src/gallium/drivers/zink/zink_screen.c b/src/gallium/drivers/zink/zink_screen.c
-index c11c6a2c..365a382c 100644
+index c11c6a2c..4dbffb99 100644
 --- a/src/gallium/drivers/zink/zink_screen.c
 +++ b/src/gallium/drivers/zink/zink_screen.c
 @@ -75,6 +75,8 @@ bool zink_tracing = false;
@@ -67,6 +432,48 @@ index c11c6a2c..365a382c 100644
  #else
  #define VK_LIBNAME "libvulkan.so.1"
  #endif
+@@ -3412,7 +3414,14 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
+    if (zink_descriptor_mode == ZINK_DESCRIPTOR_MODE_AUTO)
+       zink_descriptor_mode = debug_get_option_zink_descriptor_mode();
+ 
++#if DETECT_OS_PROSPERO
++   /* Vulkan-PS5 submissions are already synchronous. Avoid exhausting the
++    * homebrew process thread/stack budget before the Zink flush queue starts;
++    * the synchronous Zink path preserves the same ordered queue stream. */
++   screen->threaded = false;
++#else
+    screen->threaded = util_get_cpu_caps()->nr_cpus > 1 && debug_get_bool_option("GALLIUM_THREAD", util_get_cpu_caps()->nr_cpus > 1);
++#endif
+    if (zink_debug & ZINK_DEBUG_FLUSHSYNC)
+       screen->threaded_submit = false;
+    else
+@@ -3422,10 +3431,14 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
+ 
+    u_trace_state_init();
+ 
+-   screen->loader_lib = util_dl_open(VK_LIBNAME);
++   const char *loader_name = os_get_option("ZINK_VULKAN_LIBRARY");
++   if (!loader_name || !loader_name[0])
++      loader_name = VK_LIBNAME;
++   screen->loader_lib = util_dl_open(loader_name);
+    if (!screen->loader_lib) {
+-      if (!screen->driver_name_is_inferred)
+-         mesa_loge("ZINK: failed to load "VK_LIBNAME);
++      if (!screen->driver_name_is_inferred || DETECT_OS_PROSPERO)
++         mesa_loge("ZINK: failed to load %s: %s", loader_name,
++                   util_dl_error());
+       goto fail;
+    }
+ 
+@@ -3433,7 +3446,7 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
+    screen->vk_GetDeviceProcAddr = (PFN_vkGetDeviceProcAddr)util_dl_get_proc_address(screen->loader_lib, "vkGetDeviceProcAddr");
+    if (!screen->vk_GetInstanceProcAddr ||
+        !screen->vk_GetDeviceProcAddr) {
+-      if (!screen->driver_name_is_inferred)
++      if (!screen->driver_name_is_inferred || DETECT_OS_PROSPERO)
+          mesa_loge("ZINK: failed to get proc address");
+       goto fail;
+    }
 diff --git a/src/gallium/targets/dri/dri.sym.in b/src/gallium/targets/dri/dri.sym.in
 index d987668e..7ec01d66 100644
 --- a/src/gallium/targets/dri/dri.sym.in
@@ -233,3 +640,127 @@ index 7d99383e..4eede0dc 100644
  #define kinfo_file xfile
  #define f_pid xf_pid
  #define f_fd xf_fd
+diff --git a/src/util/u_queue.c b/src/util/u_queue.c
+index 6c135210..91a0de8f 100644
+--- a/src/util/u_queue.c
++++ b/src/util/u_queue.c
+@@ -35,6 +35,10 @@
+ #include "util/timespec.h"
+ #include "u_process.h"
+ 
++#if DETECT_OS_PROSPERO
++#include <pthread.h>
++#endif
++
+ #if defined(__linux__)
+ #include <sys/time.h>
+ #include <sys/resource.h>
+@@ -238,7 +242,9 @@ util_queue_thread_func(void *input)
+    struct util_queue *queue = ((struct thread_input*)input)->queue;
+    int thread_index = ((struct thread_input*)input)->thread_index;
+ 
++#if !DETECT_OS_PROSPERO
+    free(input);
++#endif
+ 
+    if (queue->flags & UTIL_QUEUE_INIT_SET_FULL_THREAD_AFFINITY) {
+       /* Don't inherit the thread affinity from the parent thread.
+@@ -320,15 +326,43 @@ util_queue_thread_func(void *input)
+    return 0;
+ }
+ 
++#if DETECT_OS_PROSPERO
++static void *
++util_queue_pthread_func(void *input)
++{
++   return (void *)(intptr_t)util_queue_thread_func(input);
++}
++#endif
++
+ static bool
+ util_queue_create_thread(struct util_queue *queue, unsigned index)
+ {
+    struct thread_input *input =
+       (struct thread_input *) malloc(sizeof(struct thread_input));
++   if (!input)
++      return false;
++
+    input->queue = queue;
+    input->thread_index = index;
+ 
+-   if (thrd_success != u_thread_create(queue->threads + index, util_queue_thread_func, input)) {
++#if DETECT_OS_PROSPERO
++   /* SceLibc allocations must be released by their owning thread. Keep the
++    * worker bootstrap allocation alive until the parent has joined it. */
++   free(queue->thread_inputs[index]);
++   queue->thread_inputs[index] = input;
++#endif
++
++#if DETECT_OS_PROSPERO
++   int create_result = pthread_create(queue->threads + index, NULL,
++                                      util_queue_pthread_func, input);
++#else
++   int create_result = u_thread_create(queue->threads + index,
++                                       util_queue_thread_func, input);
++#endif
++   if (create_result != 0) {
++#if DETECT_OS_PROSPERO
++      queue->thread_inputs[index] = NULL;
++#endif
+       free(input);
+       return false;
+    }
+@@ -452,6 +486,12 @@ util_queue_init(struct util_queue *queue,
+    if (!queue->threads)
+       goto fail;
+ 
++#if DETECT_OS_PROSPERO
++   queue->thread_inputs = (void **)calloc(queue->max_threads, sizeof(void *));
++   if (!queue->thread_inputs)
++      goto fail;
++#endif
++
+    /* start threads */
+    for (i = 0; i < queue->num_threads; i++) {
+       if (!util_queue_create_thread(queue, i)) {
+@@ -470,6 +510,13 @@ util_queue_init(struct util_queue *queue,
+    return true;
+ 
+ fail:
++#if DETECT_OS_PROSPERO
++   if (queue->thread_inputs) {
++      for (i = 0; i < queue->max_threads; i++)
++         free(queue->thread_inputs[i]);
++      free(queue->thread_inputs);
++   }
++#endif
+    free(queue->threads);
+ 
+    if (queue->jobs) {
+@@ -531,6 +578,12 @@ util_queue_destroy(struct util_queue *queue)
+ {
+    util_queue_kill_threads(queue, 0, false);
+ 
++#if DETECT_OS_PROSPERO
++   for (unsigned i = 0; i < queue->max_threads; i++)
++      free(queue->thread_inputs[i]);
++   free(queue->thread_inputs);
++#endif
++
+    /* This makes it safe to call on a queue that failed util_queue_init. */
+    if (queue->head.next != NULL)
+       remove_from_atexit_list(queue);
+diff --git a/src/util/u_queue.h b/src/util/u_queue.h
+index 7cbb89cd..4c8dc964 100644
+--- a/src/util/u_queue.h
++++ b/src/util/u_queue.h
+@@ -228,6 +228,9 @@ struct util_queue {
+    cnd_t has_queued_cond;
+    cnd_t has_space_cond;
+    thrd_t *threads;
++#if DETECT_OS_PROSPERO
++   void **thread_inputs;
++#endif
+    unsigned flags;
+    int num_queued;
+    unsigned max_threads;

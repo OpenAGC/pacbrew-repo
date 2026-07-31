@@ -16,6 +16,17 @@ examples, and bundled PSBC packaging disabled. The dedicated
 `ps5-payload-openagc-psbc` recipe builds the runtime compiler archive and
 installs its public header before Vulkan-PS5 is configured.
 
+The effective 2026-08-01 candidate revisions are OpenAGC `a1b1f31`,
+openagc-psbc `a95a68d`, Vulkan-PS5 `075d0bf`, Mesa-Zink `ffaa6a7`, and SDL2
+`2a3fc0e`. The OpenAGC, Vulkan-PS5, Mesa-Zink, and SDL2 recipes reconstruct
+those revisions from a reachable immutable archive plus the checked patch in
+the package directory; openagc-psbc pins its revision directly. These are
+host-, package-, and Prospero-build-qualified candidates. Their final ELF and
+library hashes remain deliberately unpinned until the guarded FW 5.50 EGL
+readback, visible presentation, teardown, and immediate-relaunch sequence
+passes. The SDL2 extension recipes separately pin their current upstream
+maintenance revisions listed in their `PKGBUILD` files.
+
 The current OpenAGC pin exposes explicit gfx1013 Wave32 and Wave64 compute
 dispatch modes. The matching Vulkan-PS5 pin completes the native runtime
 migration and builds both the static implementation and `libvulkan_ps5.so`

@@ -110,7 +110,7 @@ index bfcc5c6..6168727 100644
  homebrew needs:
  
 diff --git a/STATUS.md b/STATUS.md
-index 6de24c7..00e754c 100644
+index 6de24c7..066a3d9 100644
 --- a/STATUS.md
 +++ b/STATUS.md
 @@ -26,8 +26,8 @@ compute and baseline graphics oracles now also passed on exact FW 5.50 through
@@ -119,12 +119,12 @@ index 6de24c7..00e754c 100644
  Milestone 4 typed command recording, resource states, and synchronization is
 -complete for the documented support scope. Generic verification passes 17,437
 -assertions and CTest 12/12, including the Milestone 5 deterministic-capture,
-+complete for the documented support scope. Generic verification passes 17,746
++complete for the documented support scope. Generic verification passes 17,817
 +assertions and CTest 19/19, including the Milestone 5 deterministic-capture,
  installed-package example, complete API-reference, and firmware-neutral
  documentation gates. Nine cleanup-first runtime targets pass as
  identical artifact bytes on exact standard PS5 FW 5.50 and FW 11.60, covering
-@@ -36,6 +36,72 @@ API-v22 command recycling. The independent FW 11.60 workload extension
+@@ -36,6 +36,79 @@ API-v22 command recycling. The independent FW 11.60 workload extension
  remains disabled and is not exercised by these native-runtime gates; the
  firmware-neutral baseline remains 2/2 PASS.
  
@@ -133,6 +133,13 @@ index 6de24c7..00e754c 100644
 +for Vulkan-style interleaved graphics and compute work and matches the FW 5.50
 +hardware-proven compute carrier; color, depth/stencil, and scanout states
 +remain graphics-only.
++
++Push-constant backing is stage-local inside the reflected command resource
++arena. Vertex, hull, domain, geometry, pixel, and compute stages may retain
++different values at the same byte offset; pointer and inline user-SGPR
++bindings select the consuming shader's slot. Generic packet inspection proves
++different vertex/pixel inline values survive one draw. This internal layout
++fix is host-qualified and invalidates earlier linked Prospero candidate bytes.
 +
 +Runtime API 37 adds typed occlusion-query buffers and native reset, begin,
 +end, bounded-result, and layout-query entry points. GPU addresses, per-RB
@@ -197,7 +204,7 @@ index 6de24c7..00e754c 100644
  1. **Milestone 5 is complete.** Runtime API v23 has the optional
     allocation-free debug-callback layer. API v24 adds the
     endian-defined framing and core command/submission records. API v25 adds
-@@ -49,15 +115,32 @@ firmware-neutral baseline remains 2/2 PASS.
+@@ -49,15 +122,32 @@ firmware-neutral baseline remains 2/2 PASS.
     gates also pass: two separate captures decode identically with address
     redaction, and the public first-compute and first-indexed-triangle examples
     configure, link, and execute using only the installed CMake package.
@@ -234,7 +241,7 @@ index 6de24c7..00e754c 100644
  The completed R/RG/RGBA16 UNORM/SNORM/UINT/SINT tuples, all six 32-bit integer
  tuples, all 14 BC1-BC7 sampling encodings, the planned depth/HTILE progression,
  and the planned 4x MSAA matrix are regression coverage, not current
-@@ -183,6 +266,14 @@ bounded batch fence, and 64-word final readback on exact standard PS5 FW 5.50;
+@@ -183,6 +273,14 @@ bounded batch fence, and 64-word final readback on exact standard PS5 FW 5.50;
  see `analysis/runtime_compute_copy_shader_fw550_20260731.md`. Graphics
  consumers, cross-queue ownership, partial ranges, and FW 11.60 remain
  unqualified for buffer copies.
@@ -249,7 +256,7 @@ index 6de24c7..00e754c 100644
  Runtime API v12 adds `agcCmdCopyImage` for complete, identical image layouts in
  typed `CopySource` and `CopyDestination` state. Host coverage rejects
  incompatible and overlapping resources, retains both images, and splits a
-@@ -379,9 +470,10 @@ the already-qualified gfx1013 register builder; dynamic stencil references
+@@ -379,9 +477,10 @@ the already-qualified gfx1013 register builder; dynamic stencil references
  preserve the pipeline's static masks, and dynamic D16/D32 depth bias selects the
  qualified format control. The former 64-byte v1 depth-only state is normalized
  without overreading; its previously unsupported stencil bit still fails closed
@@ -263,7 +270,7 @@ index 6de24c7..00e754c 100644
  
  The first fused geometry pipeline is packaged without exposing the compiler's
  front/back split to applications. A `geometry_shader` handle containing the
-@@ -547,6 +639,60 @@ the state test. Artifact
+@@ -547,6 +646,60 @@ the state test. Artifact
  the public upload vertex/index row on exact FW 5.50; see
  `analysis/runtime_graphics_input_state_gate_fw550_20260731.md`.
  
@@ -324,7 +331,7 @@ index 6de24c7..00e754c 100644
  ## Native runtime C API contract complete (2026-07-30)
  
  The PS5-only, firmware-neutral `openagc/runtime.h` header introduces opaque
-@@ -560,8 +706,10 @@ Firmware-neutral here means one ABI across supported PS5 firmware and
+@@ -560,8 +713,10 @@ Firmware-neutral here means one ABI across supported PS5 firmware and
  standard/Trinity PS5 profiles. It does not claim a portable non-PS5 GPU API;
  the generic backend remains a host-only validation harness.
  
@@ -337,7 +344,7 @@ index 6de24c7..00e754c 100644
  recorded-resource retention, reverse destroy order, and busy rejection without
  mutation. Command buffers move through initial, recording, executable, and
  pending states; reset releases recorded references and recovers failed
-@@ -570,6 +718,18 @@ recordings. Indexed draws and compute dispatches preflight capacity and return
+@@ -570,6 +725,18 @@ recordings. Indexed draws and compute dispatches preflight capacity and return
  reset, and finite nanosecond waits; the infinite sentinel is rejected and an
  unsignaled deadline returns `AGC_ERROR_TIMEOUT`.
  
@@ -356,6 +363,71 @@ index 6de24c7..00e754c 100644
  `agcGetRuntimeInfo` reports the API and caller AGC versions, full firmware and
  normalized ABI key, exact profile and hardware family, capability bits, and a
  qualification class for every capability. Device creation owns exact runtime
+diff --git a/analysis/runtime_dma_fill_20260801.md b/analysis/runtime_dma_fill_20260801.md
+new file mode 100644
+index 0000000..4c3dfb5
+--- /dev/null
++++ b/analysis/runtime_dma_fill_20260801.md
+@@ -0,0 +1,19 @@
++# Runtime DMA fill lowering (2026-08-01)
++
++`agcCmdFillBuffer` now lowers a repeated 32-bit value to the canonical
++seven-dword gfx1013 `DMA_DATA` immediate-source packet instead of embedding the
++value once per destination dword through `WRITE_DATA`.
++
++The packet uses source select `DATA`, destination select `ADDR`, and `CP_SYNC`:
++its control dword is `0xc0000000`. Transfers are split at the qualified
++`0x1ffffc`-byte packet limit, and the complete `7 * packet_count` command-space
++requirement is checked before any packet is committed. Buffer bounds, typed
++copy-destination state, queue ownership, and resource retention continue to be
++validated by the existing native runtime path.
++
++This makes a 1920x1080 four-byte surface fill four packets (28 dwords) rather
++than roughly two million embedded payload dwords. The generic suite verifies
++the exact header, control, immediate value, zero high source word, and byte
++count. The optimized packet form remains hardware-unverified until the guarded
++FW 5.50 SDL/Zink qualification run after reboot; it must not be described as
++hardware-qualified before that gate passes.
+diff --git a/analysis/runtime_stage_local_push_constants_20260801.md b/analysis/runtime_stage_local_push_constants_20260801.md
+new file mode 100644
+index 0000000..69fb179
+--- /dev/null
++++ b/analysis/runtime_stage_local_push_constants_20260801.md
+@@ -0,0 +1,34 @@
++# Stage-local runtime push constants (2026-08-01)
++
++## Problem
++
++The native runtime tracked readiness per shader stage but stored every stage's
++push-constant bytes in one shared arena range. Two graphics stages could
++therefore be marked ready with different values for the same byte offset while
++both shader bindings still addressed the value written last.
++
++This is observable through Vulkan, where `vkCmdPushConstants` updates the
++selected shader stages independently.
++
++## Resolution
++
++The pipeline resource arena now reserves one 16-byte-aligned push-constant
++slot per `AgcShaderStage`. `agcCmdPushConstants` copies the supplied bytes only
++to the requested stage slots. Pointer and inline user-SGPR resolution select
++the slot for the shader being emitted. The public API and reflection records
++remain unchanged, and applications still receive no GPU addresses.
++
++The complete stage arena is preallocated with the command buffer's other
++reflected resources, so the change adds no draw-time allocation and preserves
++command recycling and retention rules.
++
++## Verification
++
++The generic runtime regression creates a vertex/pixel pipeline whose two
++stages consume different inline values at offset zero. It records and submits
++one draw, decodes the resulting shader-register writes, and proves that the
++vertex value is `0x11223344` while the pixel value is `0xaabbccdd`. The generic
++runtime binary reports 17,817 assertions passed and zero failed.
++
++This internal arena-layout change is host-qualified. Any Prospero library or
++ELF linked after it is a new hardware candidate and must receive a new digest.
 diff --git a/docs/api_reference.md b/docs/api_reference.md
 index fa97e8d..bfced52 100644
 --- a/docs/api_reference.md
@@ -614,7 +686,7 @@ index 066a608..8c56ef4 100644
  distinct, device-owned 1920x1080 linear `RGBA8_UNORM` images carrying
  `AGC_IMAGE_USAGE_SCANOUT_BIT`; the runtime validates their common pitch,
 diff --git a/docs/shader_pipelines.md b/docs/shader_pipelines.md
-index 222991e..82859fa 100644
+index 222991e..0a22284 100644
 --- a/docs/shader_pipelines.md
 +++ b/docs/shader_pipelines.md
 @@ -91,6 +91,12 @@ tessellation additionally uses the explicit reflected hull-LDS requirement.
@@ -630,7 +702,18 @@ index 222991e..82859fa 100644
  After binding a pipeline, use `agcCmdBindDescriptors` for exact reflected
  descriptor-array coverage, `agcCmdBindVertexBuffers` for every reflected vertex
  binding, and `agcCmdPushConstants` for declared stage ranges. The runtime owns
-@@ -117,6 +123,14 @@ reflected compute dispatch. The exact FW 5.50 endpoint oracle additionally
+@@ -104,6 +110,10 @@ indirect declarations in one shader fail pipeline creation.
+ Each v1 descriptor write names one set, binding, and array element. A bind must
+ cover every declared element exactly once. Buffer/image/sampler type, usage,
+ device ownership, offset, range, and stride are validated as a transaction.
++An explicitly written null descriptor is encoded as all-zero bytes. A null
++buffer requires zero offset, range, and stride; combined image/sampler writes
++may independently leave either typed handle null. Null writes still count
++toward exact reflected array coverage but retain no absent resource.
+ Successful bindings retain their resources until command-buffer reset or
+ destruction; rejected bindings retain nothing. Push-constant coverage is
+ tracked per stage, so draw or dispatch fails with
+@@ -117,6 +127,14 @@ reflected compute dispatch. The exact FW 5.50 endpoint oracle additionally
  renders an MRT triangle, hands one target to compute without a CPU wait, and
  matches all 4,096 sampled results against direct image readback.
  
@@ -645,7 +728,7 @@ index 222991e..82859fa 100644
  A graphics pipeline whose reflected pixel shader exports color must bind one
  `AgcColorTargetBinding` per declared attachment with
  `agcCmdBindColorTargets` before drawing. The command validates exact format,
-@@ -136,8 +150,9 @@ single-mip; packed depth-mip policy, clears/load-store, and transitions remain
+@@ -136,8 +154,9 @@ single-mip; packed depth-mip policy, clears/load-store, and transitions remain
  fail-closed until their typed contracts are added.
  
  Pipelines declare dynamic state through `dynamic_state_mask`. Viewport,
@@ -657,7 +740,7 @@ index 222991e..82859fa 100644
  `AGC_ERROR_INVALID_STATE` while any declared bit is unset. Dynamic values and
  resource bindings are command-buffer state and are cleared by reset.
  
-@@ -156,25 +171,29 @@ color/depth/stencil formats, complete depth/stencil testing, the declared
+@@ -156,25 +175,29 @@ color/depth/stencil formats, complete depth/stencil testing, the declared
  dynamic states above, and the qualified gfx1013 bind groups. In the geometry
  form, `geometry_shader` owns both compiler records and `vertex_shader` must be
  `NULL`; supplying both is rejected instead of silently ignoring either
@@ -706,7 +789,7 @@ index 222991e..82859fa 100644
  
  Tessellation uses compiler-owned fused bundles as well. Set
  `tessellation_control_shader` to an HsBack/HsFront bundle whose front program
-@@ -198,8 +217,10 @@ indexed input remains a complete tessellation patch.
+@@ -198,8 +221,10 @@ indexed input remains a complete tessellation patch.
  
  Compute supports Wave32, at most 1,024 invocations per group, no scratch, and
  at most 64 KiB LDS, including direct or indirect reflected descriptor-set
@@ -786,7 +869,7 @@ index 4247ec5..bc5bb59 100644
      uint32_t max_aniso);
  
 diff --git a/include/openagc/runtime.h b/include/openagc/runtime.h
-index 7ce43fb..c7e96f8 100644
+index 7ce43fb..f5b4edf 100644
 --- a/include/openagc/runtime.h
 +++ b/include/openagc/runtime.h
 @@ -19,14 +19,19 @@
@@ -794,7 +877,7 @@ index 7ce43fb..c7e96f8 100644
  #endif
  
 -#define AGC_RUNTIME_API_VERSION 25u
-+#define AGC_RUNTIME_API_VERSION 42u
++#define AGC_RUNTIME_API_VERSION 43u
 +#define AGC_RUNTIME_MAX_VIEWPORTS 16u
  #define AGC_RUNTIME_STRUCTURE_VERSION_1 1u
  #define AGC_RUNTIME_STRUCTURE_VERSION_2 2u
@@ -1429,7 +1512,7 @@ index 7ce43fb..c7e96f8 100644
  int32_t PS5_SYSV_ABI agcDestroyImage(AgcImage image);
  int32_t PS5_SYSV_ABI agcGetImageStateInfo(
      AgcImage image, AgcResourceStateInfo *info);
-@@ -1316,12 +1655,44 @@ int32_t PS5_SYSV_ABI agcCmdTransitionResources(
+@@ -1316,16 +1655,50 @@ int32_t PS5_SYSV_ABI agcCmdTransitionResources(
  int32_t PS5_SYSV_ABI agcCmdCopyBuffer(AgcCommandBuffer command_buffer,
      AgcBuffer source, uint64_t source_offset, AgcBuffer destination,
      uint64_t destination_offset, uint64_t size);
@@ -1474,7 +1557,14 @@ index 7ce43fb..c7e96f8 100644
  /* Descriptor resources must already have a compatible explicit typed state
   * on this command buffer's queue. Read-only descriptors require ShaderRead;
   * storage descriptors accept ShaderRead or ShaderWrite until reflection
-@@ -1336,19 +1707,36 @@ int32_t PS5_SYSV_ABI agcCmdSetViewport(
+- * carries per-binding read/write access qualifiers. */
++ * carries per-binding read/write access qualifiers. A write with the typed
++ * resource handles unset encodes a zero/null descriptor; unused typed fields,
++ * offsets, ranges, and strides must also be zero. */
+ int32_t PS5_SYSV_ABI agcCmdBindDescriptors(AgcCommandBuffer command_buffer,
+     uint32_t write_count, const AgcDescriptorWrite *writes);
+ int32_t PS5_SYSV_ABI agcCmdBindVertexBuffers(AgcCommandBuffer command_buffer,
+@@ -1336,19 +1709,36 @@ int32_t PS5_SYSV_ABI agcCmdSetViewport(
      AgcCommandBuffer command_buffer, const AgcViewport *viewport);
  int32_t PS5_SYSV_ABI agcCmdSetScissor(
      AgcCommandBuffer command_buffer, const AgcScissor *scissor);
@@ -1767,7 +1857,7 @@ index face8f6..74f9385 100644
      SceAgcCb *cb, const AgcGfx1013HtileRmwState *state)
  {
 diff --git a/src/runtime.c b/src/runtime.c
-index 356b9c8..d062d05 100644
+index 356b9c8..d825f11 100644
 --- a/src/runtime.c
 +++ b/src/runtime.c
 @@ -8,10 +8,12 @@
@@ -1807,7 +1897,15 @@ index 356b9c8..d062d05 100644
  
  typedef struct AgcRuntimeBlock AgcRuntimeBlock;
  typedef struct AgcRuntimeAllocation AgcRuntimeAllocation;
-@@ -197,6 +206,7 @@ struct AgcCaptureImpl {
+@@ -143,6 +152,7 @@ typedef struct AgcRuntimePipelineResourceLayout {
+     uint32_t descriptor_element_count;
+     uint32_t vertex_binding_mask;
+     uint32_t push_constant_size;
++    uint32_t push_constant_stride;
+     uint32_t uses_indirect_set_table;
+ } AgcRuntimePipelineResourceLayout;
+ 
+@@ -197,6 +207,7 @@ struct AgcCaptureImpl {
  struct AgcDeviceImpl {
      uint32_t magic;
      uint32_t child_count;
@@ -1815,7 +1913,7 @@ index 356b9c8..d062d05 100644
      uint32_t graphics_queue_count;
      uint32_t compute_queue_count;
      AgcAllocationCallbacks allocation;
-@@ -211,6 +221,7 @@ struct AgcDeviceImpl {
+@@ -211,6 +222,7 @@ struct AgcDeviceImpl {
      AgcRuntimeAllocation *tessellation_offchip_allocation;
      AgcRuntimeAllocation *tessellation_factor_allocation;
      AgcRuntimeAllocation *tessellation_table_allocation;
@@ -1823,7 +1921,7 @@ index 356b9c8..d062d05 100644
      uint32_t tessellation_initialized;
      AgcDebugMessageFunction debug_callback;
      void *debug_user_data;
-@@ -233,6 +244,16 @@ struct AgcQueueImpl {
+@@ -233,6 +245,16 @@ struct AgcQueueImpl {
      uint64_t last_completed_submission_id;
  };
  
@@ -1840,7 +1938,7 @@ index 356b9c8..d062d05 100644
  struct AgcBufferImpl {
      uint32_t magic;
      uint32_t recorded_refs;
-@@ -242,6 +263,9 @@ struct AgcBufferImpl {
+@@ -242,6 +264,9 @@ struct AgcBufferImpl {
      uint32_t create_flags;
      void *storage;
      AgcRuntimeAllocation *allocation;
@@ -1850,7 +1948,7 @@ index 356b9c8..d062d05 100644
      uint32_t transfer_count;
      uint32_t transfer_capacity;
      AgcRuntimePendingTransfer *transfers;
-@@ -261,6 +285,9 @@ struct AgcImageImpl {
+@@ -261,6 +286,9 @@ struct AgcImageImpl {
      AgcImageDesc desc;
      AgcImageLayout layout;
      AgcRuntimeAllocation *allocation;
@@ -1860,7 +1958,7 @@ index 356b9c8..d062d05 100644
      AgcResourceUsage usage_state;
      AgcResourceOwner owner_state;
      uint32_t subresource_state_count;
-@@ -336,13 +363,19 @@ struct AgcGraphicsPipelineImpl {
+@@ -336,13 +364,19 @@ struct AgcGraphicsPipelineImpl {
      AgcRasterizationState rasterization;
      AgcDepthStencilPipelineState depth_stencil;
      AgcMultisampleState multisample;
@@ -1880,7 +1978,7 @@ index 356b9c8..d062d05 100644
      uint32_t bind_dword_count;
      uint32_t resource_layout_requires_bindings;
      uint32_t bind_words[AGC_RUNTIME_PIPELINE_BIND_MAX_DWORDS];
-@@ -388,12 +421,16 @@ struct AgcCommandBufferImpl {
+@@ -388,12 +422,16 @@ struct AgcCommandBufferImpl {
      uint32_t color_target_count;
      uint32_t color_target_width;
      uint32_t color_target_height;
@@ -1897,7 +1995,7 @@ index 356b9c8..d062d05 100644
      uint32_t recorded_label_wait_count;
      uint32_t recorded_label_signal_count;
      uint64_t push_constant_masks[kAgcShaderStageCount];
-@@ -402,6 +439,12 @@ struct AgcCommandBufferImpl {
+@@ -402,6 +440,12 @@ struct AgcCommandBufferImpl {
      AgcImageView recorded_views[AGC_RUNTIME_MAX_RECORDED_RESOURCES];
      AgcSampler recorded_samplers[AGC_RUNTIME_MAX_RECORDED_RESOURCES];
      AgcGpuLabel recorded_labels[AGC_RUNTIME_MAX_RECORDED_RESOURCES];
@@ -1910,7 +2008,7 @@ index 356b9c8..d062d05 100644
      AgcRuntimeRecordedTransition
          recorded_transitions[AGC_RUNTIME_MAX_RECORDED_TRANSITIONS];
      AgcRuntimeRecordedLabelWait
-@@ -463,7 +506,32 @@ static int agcCommandImageRangeState(AgcCommandBuffer command_buffer,
+@@ -463,7 +507,32 @@ static int agcCommandImageRangeState(AgcCommandBuffer command_buffer,
  static uint32_t agcCommandLatestLabelSignalValue(
      const AgcCommandBuffer command_buffer, const AgcGpuLabel label);
  
@@ -1944,7 +2042,7 @@ index 356b9c8..d062d05 100644
  
  static int agcReservedZero(const uint64_t *reserved, size_t count)
  {
-@@ -498,8 +566,14 @@ static int agcHeaderValid(uint32_t struct_size, uint32_t expected_size,
+@@ -498,8 +567,14 @@ static int agcHeaderValid(uint32_t struct_size, uint32_t expected_size,
  
  static int agcDeviceValid(AgcDevice device)
  {
@@ -1961,7 +2059,7 @@ index 356b9c8..d062d05 100644
  }
  
  static int32_t agcDebugReport(AgcDevice device,
-@@ -1088,7 +1162,7 @@ static void agcCaptureRecordGraphicsPipeline(AgcGraphicsPipeline pipeline)
+@@ -1088,7 +1163,7 @@ static void agcCaptureRecordGraphicsPipeline(AgcGraphicsPipeline pipeline)
  
      if (!capture || !capture->active)
          return;
@@ -1970,7 +2068,7 @@ index 356b9c8..d062d05 100644
          (uint64_t)pipeline->descriptor_mapping_count * 24u +
          (uint64_t)pipeline->push_constant_range_count * 16u +
          (uint64_t)pipeline->color_attachment_count * 48u;
-@@ -1102,7 +1176,7 @@ static void agcCaptureRecordGraphicsPipeline(AgcGraphicsPipeline pipeline)
+@@ -1102,7 +1177,7 @@ static void agcCaptureRecordGraphicsPipeline(AgcGraphicsPipeline pipeline)
      agcCaptureWriteU64(capture, agcCaptureObjectId(capture, pipeline,
          AGC_CAPTURE_OBJECT_GRAPHICS_PIPELINE));
      agcCaptureWriteU32(capture, AGC_CAPTURE_OBJECT_GRAPHICS_PIPELINE);
@@ -1979,7 +2077,7 @@ index 356b9c8..d062d05 100644
      agcCaptureWriteU64(capture, agcCaptureObjectId(capture,
          pipeline->hull_shader, AGC_CAPTURE_OBJECT_SHADER));
      agcCaptureWriteU64(capture, agcCaptureObjectId(capture,
-@@ -1124,6 +1198,15 @@ static void agcCaptureRecordGraphicsPipeline(AgcGraphicsPipeline pipeline)
+@@ -1124,6 +1199,15 @@ static void agcCaptureRecordGraphicsPipeline(AgcGraphicsPipeline pipeline)
      agcCaptureWriteU32(capture,
          pipeline->rasterization.rasterizer_discard_enable);
      agcCaptureWriteU32(capture, pipeline->rasterization.depth_bias_enable);
@@ -1995,7 +2093,7 @@ index 356b9c8..d062d05 100644
      agcCaptureWritePipelineArrays(capture, pipeline->vertex_inputs,
          pipeline->vertex_input_count, pipeline->descriptor_mappings,
          pipeline->descriptor_mapping_count, pipeline->push_constant_ranges,
-@@ -1264,6 +1347,28 @@ static uint64_t agcAllocationGpuAddress(const AgcRuntimeAllocation *allocation)
+@@ -1264,6 +1348,28 @@ static uint64_t agcAllocationGpuAddress(const AgcRuntimeAllocation *allocation)
      return allocation->block->memory.gpu_address + allocation->offset;
  }
  
@@ -2024,7 +2122,7 @@ index 356b9c8..d062d05 100644
  static int32_t agcFlushRuntimeAllocation(
      const AgcRuntimeAllocation *allocation, uint64_t offset, uint64_t size)
  {
-@@ -1279,6 +1384,20 @@ static int32_t agcFlushRuntimeAllocation(
+@@ -1279,6 +1385,20 @@ static int32_t agcFlushRuntimeAllocation(
          (size_t)absolute_offset, (size_t)size);
  }
  
@@ -2045,7 +2143,7 @@ index 356b9c8..d062d05 100644
  static int32_t agcCreateMemoryBlock(AgcDevice device, uint32_t heap,
      uint64_t size, uint64_t alignment, uint32_t dedicated,
      AgcRuntimeBlock **block_out)
-@@ -1631,6 +1750,7 @@ int32_t PS5_SYSV_ABI agcCreateDevice(
+@@ -1631,6 +1751,7 @@ int32_t PS5_SYSV_ABI agcCreateDevice(
  {
      AgcAllocationCallbacks allocation = {0};
      AgcDevice device;
@@ -2053,7 +2151,7 @@ index 356b9c8..d062d05 100644
      int32_t result;
  
      if (!device_out)
-@@ -1643,8 +1763,12 @@ int32_t PS5_SYSV_ABI agcCreateDevice(
+@@ -1643,8 +1764,12 @@ int32_t PS5_SYSV_ABI agcCreateDevice(
          (desc->required_capability_bits & ~AGC_RUNTIME_CAP_BASELINE) != 0u) {
          return AGC_ERROR_INVALID_ARGUMENT;
      }
@@ -2067,7 +2165,7 @@ index 356b9c8..d062d05 100644
      if (desc->allocation_callbacks) {
          if (!desc->allocation_callbacks->allocate ||
              !desc->allocation_callbacks->free) {
-@@ -1658,36 +1782,49 @@ int32_t PS5_SYSV_ABI agcCreateDevice(
+@@ -1658,36 +1783,49 @@ int32_t PS5_SYSV_ABI agcCreateDevice(
      } else {
          device = calloc(1u, sizeof(*device));
      }
@@ -2127,7 +2225,7 @@ index 356b9c8..d062d05 100644
      *device_out = device;
      return AGC_OK;
  }
-@@ -1695,23 +1832,45 @@ int32_t PS5_SYSV_ABI agcCreateDevice(
+@@ -1695,23 +1833,45 @@ int32_t PS5_SYSV_ABI agcCreateDevice(
  int32_t PS5_SYSV_ABI agcDestroyDevice(AgcDevice device)
  {
      AgcAllocationCallbacks allocation;
@@ -2179,7 +2277,7 @@ index 356b9c8..d062d05 100644
      if (allocation.free)
          allocation.free(allocation.user_data, device);
      else
-@@ -1731,6 +1890,51 @@ int32_t PS5_SYSV_ABI agcGetRuntimeInfo(
+@@ -1731,6 +1891,51 @@ int32_t PS5_SYSV_ABI agcGetRuntimeInfo(
      return AGC_OK;
  }
  
@@ -2231,7 +2329,7 @@ index 356b9c8..d062d05 100644
  int32_t PS5_SYSV_ABI agcCreateCapture(AgcDevice device,
      const AgcCaptureDesc *desc, AgcCapture *capture_out)
  {
-@@ -1863,6 +2067,7 @@ int32_t PS5_SYSV_ABI agcCaptureRecordReadbackHash(AgcCapture capture,
+@@ -1863,6 +2068,7 @@ int32_t PS5_SYSV_ABI agcCaptureRecordReadbackHash(AgcCapture capture,
      AgcRuntimeAllocation *allocation;
      const uint8_t *bytes;
      uint64_t object_size;
@@ -2239,7 +2337,7 @@ index 356b9c8..d062d05 100644
      uint64_t object_id;
      uint64_t hash;
      int32_t result;
-@@ -1881,6 +2086,7 @@ int32_t PS5_SYSV_ABI agcCaptureRecordReadbackHash(AgcCapture capture,
+@@ -1881,6 +2087,7 @@ int32_t PS5_SYSV_ABI agcCaptureRecordReadbackHash(AgcCapture capture,
          allocation = buffer->allocation;
          bytes = buffer->storage;
          object_size = buffer->size;
@@ -2247,7 +2345,7 @@ index 356b9c8..d062d05 100644
      } else if (object_type == AGC_CAPTURE_OBJECT_IMAGE) {
          AgcImage image = (AgcImage)object;
          if (image->magic != AGC_MAGIC_IMAGE ||
-@@ -1888,16 +2094,19 @@ int32_t PS5_SYSV_ABI agcCaptureRecordReadbackHash(AgcCapture capture,
+@@ -1888,16 +2095,19 @@ int32_t PS5_SYSV_ABI agcCaptureRecordReadbackHash(AgcCapture capture,
              (image->desc.usage & AGC_IMAGE_USAGE_TRANSFER_SRC_BIT) == 0u)
              return AGC_ERROR_INVALID_ARGUMENT;
          allocation = image->allocation;
@@ -2270,7 +2368,7 @@ index 356b9c8..d062d05 100644
      if (result != AGC_OK)
          return result;
      hash = agcShaderHashBytes(UINT64_C(14695981039346656037),
-@@ -1992,7 +2201,8 @@ int32_t PS5_SYSV_ABI agcDestroyQueue(AgcQueue queue)
+@@ -1992,7 +2202,8 @@ int32_t PS5_SYSV_ABI agcDestroyQueue(AgcQueue queue)
      device = queue->device;
      if (queue->type == kAgcQueueCompute) {
  #ifndef OPENAGC_PROSPERO
@@ -2280,7 +2378,7 @@ index 356b9c8..d062d05 100644
          if (result != AGC_OK)
              return result;
  #endif
-@@ -2021,11 +2231,24 @@ static int agcGetRuntimeFormatInfo(uint32_t format, AgcRuntimeFormatInfo *info)
+@@ -2021,11 +2232,24 @@ static int agcGetRuntimeFormatInfo(uint32_t format, AgcRuntimeFormatInfo *info)
      info->block_height = 1u;
      info->plane_count = 1u;
      switch (format) {
@@ -2305,7 +2403,7 @@ index 356b9c8..d062d05 100644
      case AGC_FORMAT_RGBA16_FLOAT:
      case AGC_FORMAT_RGBA16_UINT:
      case AGC_FORMAT_RGBA16_SINT:
-@@ -2087,6 +2310,21 @@ static int agcGetRuntimeFormatInfo(uint32_t format, AgcRuntimeFormatInfo *info)
+@@ -2087,6 +2311,21 @@ static int agcGetRuntimeFormatInfo(uint32_t format, AgcRuntimeFormatInfo *info)
      }
  }
  
@@ -2327,7 +2425,7 @@ index 356b9c8..d062d05 100644
  static int agcImageDescBasicValid(const AgcImageDesc *desc)
  {
      AgcRuntimeFormatInfo format;
-@@ -2098,9 +2336,7 @@ static int agcImageDescBasicValid(const AgcImageDesc *desc)
+@@ -2098,9 +2337,7 @@ static int agcImageDescBasicValid(const AgcImageDesc *desc)
          AGC_IMAGE_USAGE_TRANSFER_DST_BIT | AGC_IMAGE_USAGE_SCANOUT_BIT |
          AGC_IMAGE_USAGE_CUBE_COMPATIBLE_BIT | AGC_IMAGE_USAGE_HTILE_BIT;
  
@@ -2338,7 +2436,7 @@ index 356b9c8..d062d05 100644
          desc->width == 0u || desc->height == 0u || desc->depth == 0u ||
          desc->width > 0x4000u || desc->height > 0x4000u ||
          desc->depth > 0x2000u ||
-@@ -2109,6 +2345,8 @@ static int agcImageDescBasicValid(const AgcImageDesc *desc)
+@@ -2109,6 +2346,8 @@ static int agcImageDescBasicValid(const AgcImageDesc *desc)
          (desc->sample_count != 1u && desc->sample_count != 4u) ||
          desc->usage == 0u || (desc->usage & ~known_usage) != 0u ||
          !agcReservedZero(desc->reserved, 4u) ||
@@ -2347,7 +2445,7 @@ index 356b9c8..d062d05 100644
          !agcGetRuntimeFormatInfo(desc->format, &format))
          return 0;
      if ((desc->sample_count > 1u && (desc->mip_levels > 1u ||
-@@ -2121,11 +2359,13 @@ static int agcImageDescBasicValid(const AgcImageDesc *desc)
+@@ -2121,11 +2360,13 @@ static int agcImageDescBasicValid(const AgcImageDesc *desc)
          (format.depth_stencil && desc->depth != 1u) ||
          (desc->sample_count > 1u &&
              ((desc->usage & AGC_IMAGE_USAGE_CUBE_COMPATIBLE_BIT) != 0u ||
@@ -2363,7 +2461,7 @@ index 356b9c8..d062d05 100644
               desc->mip_levels != 1u || desc->array_layers != 1u ||
               desc->sample_count != 1u)))
          return 0;
-@@ -2138,7 +2378,8 @@ static int agcImageDescBasicValid(const AgcImageDesc *desc)
+@@ -2138,7 +2379,8 @@ static int agcImageDescBasicValid(const AgcImageDesc *desc)
          (format.depth_stencil != 0u))
          return 0;
      if ((desc->usage & AGC_IMAGE_USAGE_HTILE_BIT) != 0u &&
@@ -2373,7 +2471,7 @@ index 356b9c8..d062d05 100644
          return 0;
      max_dimension = desc->width;
      if (desc->height > max_dimension)
-@@ -2234,7 +2475,7 @@ static int32_t agcComputeLinearSubresource(const AgcImageDesc *desc,
+@@ -2234,7 +2476,7 @@ static int32_t agcComputeLinearSubresource(const AgcImageDesc *desc,
              subresources > UINT32_MAX)
              return AGC_ERROR_INVALID_ARGUMENT;
          aggregate->allocation_size = cursor;
@@ -2382,7 +2480,7 @@ index 356b9c8..d062d05 100644
          aggregate->plane_count = total_planes;
          aggregate->subresource_count = (uint32_t)subresources;
          aggregate->block_width = format.block_width;
-@@ -2563,7 +2804,8 @@ int32_t PS5_SYSV_ABI agcGetImageLayout(
+@@ -2563,7 +2805,8 @@ int32_t PS5_SYSV_ABI agcGetImageLayout(
          sizeof(*layout) - offsetof(AgcImageLayout, allocation_size));
      if (agcRuntimeIsBcFormat(desc ? desc->format : AGC_FORMAT_UNDEFINED))
          return agcComputeBcLayout(desc, 0u, 0u, NULL, layout);
@@ -2392,7 +2490,7 @@ index 356b9c8..d062d05 100644
          return agcComputeDepthLayout(device, desc, 0u, 0u, 0u, NULL, layout);
      if (desc && desc->sample_count == 4u)
          return agcComputeMsaaColorLayout(desc, 0u, NULL, layout);
-@@ -2585,7 +2827,8 @@ int32_t PS5_SYSV_ABI agcGetImageSubresourceLayout(AgcDevice device,
+@@ -2585,7 +2828,8 @@ int32_t PS5_SYSV_ABI agcGetImageSubresourceLayout(AgcDevice device,
              return AGC_ERROR_INVALID_ARGUMENT;
          return agcComputeBcLayout(desc, mip_level, array_layer, layout, NULL);
      }
@@ -2402,7 +2500,7 @@ index 356b9c8..d062d05 100644
          return agcComputeDepthLayout(device, desc, mip_level, array_layer,
              plane, layout, NULL);
      if (desc && desc->sample_count == 4u) {
-@@ -2734,17 +2977,136 @@ static void agcBufferCommitRangeState(AgcBuffer buffer, uint64_t offset,
+@@ -2734,17 +2978,136 @@ static void agcBufferCommitRangeState(AgcBuffer buffer, uint64_t offset,
      buffer->state_range_count = write;
  }
  
@@ -2542,7 +2640,7 @@ index 356b9c8..d062d05 100644
      int32_t result;
  
      if (!buffer_out)
-@@ -2757,8 +3119,6 @@ int32_t PS5_SYSV_ABI agcCreateBuffer(
+@@ -2757,8 +3120,6 @@ int32_t PS5_SYSV_ABI agcCreateBuffer(
          desc->size == 0u || desc->size > SIZE_MAX || desc->usage == 0u ||
          (desc->usage & ~valid_usage) != 0u ||
          (desc->flags & ~valid_flags) != 0u ||
@@ -2551,7 +2649,7 @@ index 356b9c8..d062d05 100644
          !agcReservedZero(desc->reserved, 4u)) {
          return agcDebugReport(device, AGC_DEBUG_MESSAGE_SEVERITY_ERROR_BIT,
              AGC_DEBUG_MESSAGE_CATEGORY_PARAMETER_BIT,
-@@ -2772,16 +3132,33 @@ int32_t PS5_SYSV_ABI agcCreateBuffer(
+@@ -2772,16 +3133,33 @@ int32_t PS5_SYSV_ABI agcCreateBuffer(
      heap = (desc->flags & (AGC_BUFFER_CREATE_UPLOAD_BIT |
          AGC_BUFFER_CREATE_READBACK_BIT)) != 0u ?
          AGC_MEMORY_HEAP_FLEXIBLE : AGC_MEMORY_HEAP_GARLIC;
@@ -2594,7 +2692,7 @@ index 356b9c8..d062d05 100644
      buffer->magic = AGC_MAGIC_BUFFER;
      buffer->device = device;
      buffer->size = desc->size;
-@@ -2801,6 +3178,20 @@ int32_t PS5_SYSV_ABI agcCreateBuffer(
+@@ -2801,6 +3179,20 @@ int32_t PS5_SYSV_ABI agcCreateBuffer(
      return AGC_OK;
  }
  
@@ -2615,7 +2713,7 @@ index 356b9c8..d062d05 100644
  int32_t PS5_SYSV_ABI agcDestroyBuffer(AgcBuffer buffer)
  {
      AgcDevice device;
-@@ -2825,7 +3216,10 @@ int32_t PS5_SYSV_ABI agcDestroyBuffer(AgcBuffer buffer)
+@@ -2825,7 +3217,10 @@ int32_t PS5_SYSV_ABI agcDestroyBuffer(AgcBuffer buffer)
              "buffer is already queued for deferred destruction");
      device = buffer->device;
      agcCaptureRecordObjectDestroy(device, buffer, AGC_CAPTURE_OBJECT_BUFFER);
@@ -2627,7 +2725,7 @@ index 356b9c8..d062d05 100644
      if (buffer->state_ranges != &buffer->inline_state_range)
          agcFree(device, buffer->state_ranges);
      if (buffer->transfers != &buffer->inline_transfer)
-@@ -3340,8 +3734,9 @@ static void agcImageCommitRangeState(AgcImage image,
+@@ -3340,8 +3735,9 @@ static void agcImageCommitRangeState(AgcImage image,
      image->subresource_state_count = 0u;
  }
  
@@ -2639,7 +2737,7 @@ index 356b9c8..d062d05 100644
  {
      AgcImage image;
      AgcImageLayout layout = AGC_IMAGE_LAYOUT_INIT;
-@@ -3369,17 +3764,43 @@ int32_t PS5_SYSV_ABI agcCreateImage(
+@@ -3369,17 +3765,43 @@ int32_t PS5_SYSV_ABI agcCreateImage(
      image = agcCreateChild(device, sizeof(*image));
      if (!image)
          return AGC_ERROR_OUT_OF_MEMORY;
@@ -2691,7 +2789,7 @@ index 356b9c8..d062d05 100644
      image->layout = layout;
      image->transfer_capacity = 1u;
      image->transfers = &image->inline_transfer;
-@@ -3390,6 +3811,20 @@ int32_t PS5_SYSV_ABI agcCreateImage(
+@@ -3390,6 +3812,20 @@ int32_t PS5_SYSV_ABI agcCreateImage(
      return AGC_OK;
  }
  
@@ -2712,7 +2810,7 @@ index 356b9c8..d062d05 100644
  int32_t PS5_SYSV_ABI agcDestroyImage(AgcImage image)
  {
      AgcDevice device;
-@@ -3415,7 +3850,10 @@ int32_t PS5_SYSV_ABI agcDestroyImage(AgcImage image)
+@@ -3415,7 +3851,10 @@ int32_t PS5_SYSV_ABI agcDestroyImage(AgcImage image)
              "image is already queued for deferred destruction");
      device = image->device;
      agcCaptureRecordObjectDestroy(device, image, AGC_CAPTURE_OBJECT_IMAGE);
@@ -2724,7 +2822,7 @@ index 356b9c8..d062d05 100644
      if (image->subresource_states)
          agcFree(device, image->subresource_states);
      if (image->transfers != &image->inline_transfer)
-@@ -3518,7 +3956,8 @@ int32_t PS5_SYSV_ABI agcCreatePresentChain(AgcDevice device,
+@@ -3518,7 +3957,8 @@ int32_t PS5_SYSV_ABI agcCreatePresentChain(AgcDevice device,
              image->desc.height != mode.height || image->desc.depth != 1u ||
              image->desc.mip_levels != 1u || image->desc.array_layers != 1u ||
              image->desc.sample_count != 1u ||
@@ -2734,7 +2832,7 @@ index 356b9c8..d062d05 100644
              (image->desc.usage & AGC_IMAGE_USAGE_SCANOUT_BIT) == 0u)
              return AGC_ERROR_NOT_SUPPORTED;
          for (j = 0u; j < i; ++j)
-@@ -3535,7 +3974,7 @@ int32_t PS5_SYSV_ABI agcCreatePresentChain(AgcDevice device,
+@@ -3535,7 +3975,7 @@ int32_t PS5_SYSV_ABI agcCreatePresentChain(AgcDevice device,
              pitch_pixels = (uint32_t)(layout.row_pitch / 4u);
          else if (pitch_pixels != layout.row_pitch / 4u)
              return AGC_ERROR_NOT_SUPPORTED;
@@ -2743,7 +2841,7 @@ index 356b9c8..d062d05 100644
              layout.offset;
      }
      present_chain = agcCreateChild(device, sizeof(*present_chain));
-@@ -3626,30 +4065,66 @@ static int32_t agcRuntimeEncodeImageView(
+@@ -3626,30 +4066,66 @@ static int32_t agcRuntimeEncodeImageView(
      AgcGfx1013ImageDescriptor *descriptor)
  {
      AgcGfx1013Image2DState state = {0};
@@ -2821,7 +2919,7 @@ index 356b9c8..d062d05 100644
          state.image_type = AGC_GFX1013_IMAGE_TYPE_2D_ARRAY;
      } else {
          state.image_type = AGC_GFX1013_IMAGE_TYPE_2D;
-@@ -3657,6 +4132,15 @@ static int32_t agcRuntimeEncodeImageView(
+@@ -3657,6 +4133,15 @@ static int32_t agcRuntimeEncodeImageView(
      return agcGfx1013Image2DDescriptorEncode(descriptor, &state);
  }
  
@@ -2837,7 +2935,7 @@ index 356b9c8..d062d05 100644
  int32_t PS5_SYSV_ABI agcCreateImageView(
      AgcDevice device, const AgcImageViewDesc *desc, AgcImageView *view_out)
  {
-@@ -3670,9 +4154,14 @@ int32_t PS5_SYSV_ABI agcCreateImageView(
+@@ -3670,9 +4155,14 @@ int32_t PS5_SYSV_ABI agcCreateImageView(
      *view_out = NULL;
      if (!agcDeviceValid(device))
          return AGC_ERROR_INVALID_ARGUMENT;
@@ -2855,7 +2953,7 @@ index 356b9c8..d062d05 100644
          return agcDebugReport(device, AGC_DEBUG_MESSAGE_SEVERITY_ERROR_BIT,
              AGC_DEBUG_MESSAGE_CATEGORY_PARAMETER_BIT,
              AGC_ERROR_INVALID_ARGUMENT, "agcCreateImageView",
-@@ -3694,6 +4183,16 @@ int32_t PS5_SYSV_ABI agcCreateImageView(
+@@ -3694,6 +4184,16 @@ int32_t PS5_SYSV_ABI agcCreateImageView(
              AGC_OBJECT_TYPE_IMAGE_VIEW, NULL,
              "image view requires a live same-device image, matching format, and in-range mip/layer interval");
      }
@@ -2872,7 +2970,7 @@ index 356b9c8..d062d05 100644
      result = agcRuntimeEncodeImageView(image, desc, &descriptor);
      if (result != AGC_OK)
          return result;
-@@ -3719,7 +4218,8 @@ int32_t PS5_SYSV_ABI agcCreateImageView(
+@@ -3719,7 +4219,8 @@ int32_t PS5_SYSV_ABI agcCreateImageView(
      view->magic = AGC_MAGIC_IMAGE_VIEW;
      view->device = device;
      view->image = image;
@@ -2882,7 +2980,7 @@ index 356b9c8..d062d05 100644
      image->dependency_refs++;
      *view_out = view;
      agcCaptureRecordObjectCreate(device, view,
-@@ -3760,20 +4260,43 @@ int32_t PS5_SYSV_ABI agcCreateSampler(
+@@ -3760,20 +4261,43 @@ int32_t PS5_SYSV_ABI agcCreateSampler(
      AgcSampler sampler;
      AgcSamplerDescriptor descriptor;
      int32_t result;
@@ -2931,7 +3029,7 @@ index 356b9c8..d062d05 100644
          return agcDebugReport(device, AGC_DEBUG_MESSAGE_SEVERITY_ERROR_BIT,
              AGC_DEBUG_MESSAGE_CATEGORY_PARAMETER_BIT,
              AGC_ERROR_INVALID_ARGUMENT, "agcCreateSampler",
-@@ -3783,17 +4306,74 @@ int32_t PS5_SYSV_ABI agcCreateSampler(
+@@ -3783,17 +4307,74 @@ int32_t PS5_SYSV_ABI agcCreateSampler(
      agcSamplerDescriptorInit(&descriptor);
      agcSamplerDescriptorSetFilterMode(&descriptor,
          desc->min_filter == AGC_FILTER_LINEAR ?
@@ -3015,7 +3113,7 @@ index 356b9c8..d062d05 100644
      sampler = agcCreateChild(device, sizeof(*sampler));
      if (!sampler)
          return AGC_ERROR_OUT_OF_MEMORY;
-@@ -3815,7 +4395,8 @@ int32_t PS5_SYSV_ABI agcCreateSampler(
+@@ -3815,7 +4396,8 @@ int32_t PS5_SYSV_ABI agcCreateSampler(
      }
      sampler->magic = AGC_MAGIC_SAMPLER;
      sampler->device = device;
@@ -3025,7 +3123,7 @@ index 356b9c8..d062d05 100644
      *sampler_out = sampler;
      agcCaptureRecordObjectCreate(device, sampler,
          AGC_CAPTURE_OBJECT_SAMPLER, sampler->desc.min_filter,
-@@ -4006,7 +4587,8 @@ static int agcShaderReflectionValid(
+@@ -4006,7 +4588,8 @@ static int agcShaderReflectionValid(
          AGC_SHADER_REFLECTION_WRITES_DEPTH_BIT |
          AGC_SHADER_REFLECTION_WRITES_STENCIL_BIT |
          AGC_SHADER_REFLECTION_USES_SAMPLE_SHADING_BIT |
@@ -3035,7 +3133,7 @@ index 356b9c8..d062d05 100644
      const uint64_t known_system_sgprs =
          AGC_SHADER_SYSTEM_SGPR_BASE_VERTEX_BIT |
          AGC_SHADER_SYSTEM_SGPR_START_INSTANCE_BIT |
-@@ -4027,8 +4609,12 @@ static int agcShaderReflectionValid(
+@@ -4027,8 +4610,12 @@ static int agcShaderReflectionValid(
              AGC_SHADER_COMPILER_API_VERSION_14;
      current_reflection =
          reflection->version == AGC_SHADER_REFLECTION_VERSION_2 &&
@@ -3050,7 +3148,7 @@ index 356b9c8..d062d05 100644
      if (!reflection || reflection->struct_size != sizeof(*reflection) ||
          (!legacy_reflection && !current_reflection) ||
          reflection->stage != stage || stage >= kAgcShaderStageCount ||
-@@ -4114,7 +4700,8 @@ static int agcShaderReflectionValid(
+@@ -4114,7 +4701,8 @@ static int agcShaderReflectionValid(
             (AGC_SHADER_REFLECTION_DUAL_SOURCE_EXPORT_BIT |
              AGC_SHADER_REFLECTION_WRITES_DEPTH_BIT |
              AGC_SHADER_REFLECTION_WRITES_STENCIL_BIT |
@@ -3060,7 +3158,29 @@ index 356b9c8..d062d05 100644
          (stage == kAgcShaderStagePs &&
           reflection->pixel_shader_sample_count != 1u &&
           reflection->pixel_shader_sample_count != 2u &&
-@@ -4760,12 +5347,22 @@ static int agcPipelineFormatInfo(
+@@ -4739,12 +5327,20 @@ static int32_t agcPipelineBuildResourceLayout(
+             return AGC_ERROR_VALIDATION_FAILED;
+     }
+     if (push_constant_size != 0u) {
++        uint64_t push_constant_stride;
++        uint64_t push_constant_span;
+         if (!agcAlignU64(offset, 16u, &offset))
+             return AGC_ERROR_VALIDATION_FAILED;
+         layout->push_constant_offset = offset;
+         layout->push_constant_size = push_constant_size;
+-        if (!agcAddU64(offset, push_constant_size, &offset))
++        if (!agcAlignU64(push_constant_size, 16u,
++                &push_constant_stride) ||
++            push_constant_stride > UINT32_MAX ||
++            !agcMulU64(push_constant_stride, kAgcShaderStageCount,
++                &push_constant_span) ||
++            !agcAddU64(offset, push_constant_span, &offset))
+             return AGC_ERROR_VALIDATION_FAILED;
++        layout->push_constant_stride = (uint32_t)push_constant_stride;
+     }
+     if (!agcAlignU64(offset, 256u, &layout->total_size) ||
+         layout->total_size > AGC_RUNTIME_MAX_RESOURCE_ARENA_SIZE)
+@@ -4760,12 +5356,22 @@ static int agcPipelineFormatInfo(
      *depth = 0u;
      *stencil = 0u;
      switch ((AgcFormat)format) {
@@ -3084,7 +3204,7 @@ index 356b9c8..d062d05 100644
          return 1;
      case AGC_FORMAT_RGBA32_FLOAT:
          *component_class = AGC_SHADER_COMPONENT_FLOAT_OR_NORMALIZED;
-@@ -4813,6 +5410,12 @@ static int agcRuntimeColorTargetFormat(uint32_t format,
+@@ -4813,6 +5419,12 @@ static int agcRuntimeColorTargetFormat(uint32_t format,
      if (!target_format)
          return 0;
      switch ((AgcFormat)format) {
@@ -3097,7 +3217,7 @@ index 356b9c8..d062d05 100644
      case AGC_FORMAT_RGBA8_UNORM:
          *target_format = AGC_GFX1013_RT_FORMAT_RGBA8_UNORM;
          return 1;
-@@ -4822,6 +5425,27 @@ static int agcRuntimeColorTargetFormat(uint32_t format,
+@@ -4822,6 +5434,27 @@ static int agcRuntimeColorTargetFormat(uint32_t format,
      case AGC_FORMAT_RGBA8_SRGB:
          *target_format = AGC_GFX1013_RT_FORMAT_RGBA8_SRGB;
          return 1;
@@ -3125,7 +3245,7 @@ index 356b9c8..d062d05 100644
      case AGC_FORMAT_RGBA16_FLOAT:
          *target_format = AGC_GFX1013_RT_FORMAT_RGBA16_FLOAT;
          return 1;
-@@ -4910,6 +5534,16 @@ static int agcPipelineRasterizationStateValid(
+@@ -4910,6 +5543,16 @@ static int agcPipelineRasterizationStateValid(
          state->flags == 0u && agcReservedZero(state->reserved, 3u);
  }
  
@@ -3142,7 +3262,7 @@ index 356b9c8..d062d05 100644
  typedef struct AgcDepthStencilPipelineStateV1 {
      uint32_t struct_size;
      uint32_t version;
-@@ -5183,9 +5817,13 @@ static int32_t agcBuildGraphicsPipelineBind(
+@@ -5183,9 +5826,13 @@ static int32_t agcBuildGraphicsPipelineBind(
      AgcRegisterValue pixel_sh[UINT8_MAX];
      AgcGfx1013ColorBlendState blend_state = {0};
      AgcGfx1013DepthStencilState depth_state = {0};
@@ -3156,7 +3276,7 @@ index 356b9c8..d062d05 100644
      SceAgcCb cb;
      uint32_t color_export_format = 0u;
      uint32_t i;
-@@ -5262,6 +5900,25 @@ static int32_t agcBuildGraphicsPipelineBind(
+@@ -5262,6 +5909,25 @@ static int32_t agcBuildGraphicsPipelineBind(
      }
      if (result != AGC_OK)
          return result;
@@ -3182,7 +3302,7 @@ index 356b9c8..d062d05 100644
      for (i = 0u; i < pipeline->color_attachment_count; ++i) {
          color_export_format |= (uint32_t)pipeline->pixel_shader->reflection.
              color_exports[i].format << (i * 4u);
-@@ -5272,6 +5929,9 @@ static int32_t agcBuildGraphicsPipelineBind(
+@@ -5272,6 +5938,9 @@ static int32_t agcBuildGraphicsPipelineBind(
          return AGC_ERROR_INTERNAL;
      if (pipeline->color_attachment_count != 0u) {
          blend_state.target_count = pipeline->color_attachment_count;
@@ -3192,7 +3312,7 @@ index 356b9c8..d062d05 100644
          for (i = 0u; i < pipeline->color_attachment_count; ++i) {
              const AgcColorBlendAttachmentState *source =
                  &pipeline->color_attachments[i];
-@@ -5325,6 +5985,29 @@ static int32_t agcBuildGraphicsPipelineBind(
+@@ -5325,6 +5994,29 @@ static int32_t agcBuildGraphicsPipelineBind(
      }
      if (result != AGC_OK)
          return result;
@@ -3222,7 +3342,7 @@ index 356b9c8..d062d05 100644
      sample_state.sample_count = pipeline->multisample.rasterization_samples;
      sample_state.pixel_shader_sample_count =
          pipeline->pixel_shader->reflection.pixel_shader_sample_count == 0u ?
-@@ -5357,6 +6040,14 @@ static int32_t agcBuildGraphicsPipelineBind(
+@@ -5357,6 +6049,14 @@ static int32_t agcBuildGraphicsPipelineBind(
          raster_register.value |= AGC_GFX1013_DEPTH_BIAS_RASTER_MODE;
      if (!sceAgcCbSetCxRegistersDirect(&cb, &raster_register, 1u))
          return AGC_ERROR_INTERNAL;
@@ -3237,7 +3357,7 @@ index 356b9c8..d062d05 100644
      pipeline->bind_dword_count = (uint32_t)agcCbUsedDwords(&cb);
      return AGC_OK;
  }
-@@ -5366,31 +6057,91 @@ static int agcPipelineGeometrySubsetValid(
+@@ -5366,31 +6066,91 @@ static int agcPipelineGeometrySubsetValid(
  {
      uint32_t required_vertices;
  
@@ -3341,7 +3461,7 @@ index 356b9c8..d062d05 100644
  }
  
  int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
-@@ -5410,7 +6161,8 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
+@@ -5410,7 +6170,8 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
          AGC_DYNAMIC_STATE_VIEWPORT_BIT | AGC_DYNAMIC_STATE_SCISSOR_BIT |
          AGC_DYNAMIC_STATE_BLEND_CONSTANTS_BIT |
          AGC_DYNAMIC_STATE_STENCIL_REFERENCE_BIT |
@@ -3351,7 +3471,7 @@ index 356b9c8..d062d05 100644
      uint32_t i;
      uint32_t j;
      uint32_t tessellation_tcs_layout = 0u;
-@@ -5426,10 +6178,33 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
+@@ -5426,10 +6187,33 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
          return AGC_ERROR_INVALID_ARGUMENT;
      if (!desc ||
          desc->struct_size != sizeof(*desc) ||
@@ -3387,7 +3507,7 @@ index 356b9c8..d062d05 100644
          desc->vertex_input_count > AGC_SHADER_MAX_VERTEX_INPUTS ||
          desc->descriptor_mapping_count >
              AGC_SHADER_MAX_DESCRIPTOR_BINDINGS ||
-@@ -5450,6 +6225,32 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
+@@ -5450,6 +6234,32 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
              "graphics pipeline descriptor has an invalid version, count, pointer, flag, dynamic state, or reserved field");
      }
      tessellated = desc->tessellation_control_shader != NULL;
@@ -3420,7 +3540,7 @@ index 356b9c8..d062d05 100644
      if (tessellated) {
          if (desc->vertex_shader ||
              (desc->tessellation_evaluation_shader != NULL) ==
-@@ -5509,7 +6310,11 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
+@@ -5509,7 +6319,11 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
             AGC_SHADER_REFLECTION_FUSED_STAGE_BIT)) !=
               (AGC_SHADER_REFLECTION_NGG_BIT |
                AGC_SHADER_REFLECTION_FUSED_STAGE_BIT) ||
@@ -3433,7 +3553,7 @@ index 356b9c8..d062d05 100644
          return agcPipelineDebugReport(device, "agcCreateGraphicsPipeline",
              AGC_ERROR_NOT_SUPPORTED, AGC_DEBUG_MESSAGE_CATEGORY_CAPABILITY_BIT,
              "geometry pipeline requires a qualified fused NGG front/back shader and supported primitive topology");
-@@ -5530,10 +6335,9 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
+@@ -5530,10 +6344,9 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
              prim->version != AGC_SHADER_REFLECTION_VERSION_2 ||
              prim->front_stage != kAgcShaderStageDs ||
              !primitive->has_front_record || prim->wave_size != 32u ||
@@ -3447,7 +3567,7 @@ index 356b9c8..d062d05 100644
              hs->tessellation_patch_count !=
                  prim->tessellation_patch_count ||
              hs->tessellation_output_control_points !=
-@@ -5579,14 +6383,21 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
+@@ -5579,14 +6392,21 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
      if (hull) {
          result = agcPipelineValidateShaderUserData(&hull->reflection);
          if (result != AGC_OK)
@@ -3472,7 +3592,7 @@ index 356b9c8..d062d05 100644
      if (primitive->reflection.scratch_bytes_per_wave != 0u ||
          ps->reflection.scratch_bytes_per_wave != 0u ||
          (hull && hull->reflection.scratch_bytes_per_wave != 0u))
-@@ -5740,19 +6551,31 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
+@@ -5740,19 +6560,31 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
                  "rasterization state contains an invalid enum, value, version, flag, or reserved field");
          rasterization = *desc->rasterization;
      }
@@ -3513,7 +3633,7 @@ index 356b9c8..d062d05 100644
      if (desc->depth_stencil) {
          result = agcPipelineNormalizeDepthState(
              desc->depth_stencil, &depth_stencil);
-@@ -5790,11 +6613,17 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
+@@ -5790,11 +6622,17 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
                  "multisample state contains an invalid sample count, shading value, version, flag, or reserved field");
          multisample = *desc->multisample;
      }
@@ -3534,7 +3654,7 @@ index 356b9c8..d062d05 100644
      if (ps->reflection.pixel_shader_sample_count != 0u &&
          ps->reflection.pixel_shader_sample_count >
              multisample.rasterization_samples)
-@@ -5829,10 +6658,12 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
+@@ -5829,10 +6667,12 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
          agcPipelineUsesIndirectDescriptorSets(&primitive->reflection) ||
              (hull && agcPipelineUsesIndirectDescriptorSets(
                  &hull->reflection)) ||
@@ -3549,7 +3669,7 @@ index 356b9c8..d062d05 100644
      if (tessellated) {
          result = agcRuntimeInitializeTessellationStorage(device);
          if (result != AGC_OK)
-@@ -5866,10 +6697,22 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
+@@ -5866,10 +6706,22 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
      pipeline->rasterization = rasterization;
      pipeline->depth_stencil = depth_stencil;
      pipeline->multisample = multisample;
@@ -3573,7 +3693,7 @@ index 356b9c8..d062d05 100644
      if (primitive->stage == kAgcShaderStageGs)
          pipeline->geometry_input_vertices =
              primitive->reflection.geometry_vertices_in;
-@@ -5888,7 +6731,9 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
+@@ -5888,7 +6740,9 @@ int32_t PS5_SYSV_ABI agcCreateGraphicsPipeline(AgcDevice device,
      if (result != AGC_OK) {
          pipeline->magic = 0u;
          agcDestroyChild(device, pipeline);
@@ -3584,7 +3704,7 @@ index 356b9c8..d062d05 100644
      }
      if (hull)
          hull->dependency_refs++;
-@@ -5978,7 +6823,9 @@ int32_t PS5_SYSV_ABI agcCreateComputePipeline(AgcDevice device,
+@@ -5978,7 +6832,9 @@ int32_t PS5_SYSV_ABI agcCreateComputePipeline(AgcDevice device,
              "compute pipeline shader requires valid compiler reflection metadata");
      result = agcPipelineValidateShaderUserData(&shader->reflection);
      if (result != AGC_OK)
@@ -3595,7 +3715,7 @@ index 356b9c8..d062d05 100644
      if (shader->reflection.wave_size != 32u ||
          shader->reflection.scratch_bytes_per_wave != 0u ||
          shader->reflection.lds_size > 65536u)
-@@ -6049,7 +6896,9 @@ int32_t PS5_SYSV_ABI agcCreateComputePipeline(AgcDevice device,
+@@ -6049,7 +6905,9 @@ int32_t PS5_SYSV_ABI agcCreateComputePipeline(AgcDevice device,
          agcPipelineUsesIndirectDescriptorSets(&shader->reflection),
          &resource_layout);
      if (result != AGC_OK)
@@ -3606,7 +3726,7 @@ index 356b9c8..d062d05 100644
      pipeline = agcCreateChild(device, sizeof(*pipeline));
      if (!pipeline)
          return AGC_ERROR_OUT_OF_MEMORY;
-@@ -6107,14 +6956,12 @@ static void agcReleaseCommandReferences(AgcCommandBuffer command_buffer)
+@@ -6107,14 +6965,12 @@ static void agcReleaseCommandReferences(AgcCommandBuffer command_buffer)
  {
      uint32_t i;
  
@@ -3627,7 +3747,7 @@ index 356b9c8..d062d05 100644
      if (command_buffer->index_buffer) {
          command_buffer->index_buffer->recorded_refs--;
          command_buffer->index_buffer = NULL;
-@@ -6155,6 +7002,8 @@ static void agcReleaseCommandReferences(AgcCommandBuffer command_buffer)
+@@ -6155,6 +7011,8 @@ static void agcReleaseCommandReferences(AgcCommandBuffer command_buffer)
      command_buffer->recorded_sampler_count = 0u;
      command_buffer->recorded_transition_count = 0u;
      command_buffer->recorded_label_count = 0u;
@@ -3636,7 +3756,7 @@ index 356b9c8..d062d05 100644
      command_buffer->recorded_label_wait_count = 0u;
      command_buffer->recorded_label_signal_count = 0u;
      command_buffer->descriptors_bound = 0u;
-@@ -6163,14 +7012,15 @@ static void agcReleaseCommandReferences(AgcCommandBuffer command_buffer)
+@@ -6163,14 +7021,15 @@ static void agcReleaseCommandReferences(AgcCommandBuffer command_buffer)
      command_buffer->color_target_count = 0u;
      command_buffer->color_target_width = 0u;
      command_buffer->color_target_height = 0u;
@@ -3656,7 +3776,7 @@ index 356b9c8..d062d05 100644
  }
  
  static int32_t agcPrepareCommandResources(AgcCommandBuffer command_buffer,
-@@ -6181,10 +7031,13 @@ static int32_t agcPrepareCommandResources(AgcCommandBuffer command_buffer,
+@@ -6181,10 +7040,13 @@ static int32_t agcPrepareCommandResources(AgcCommandBuffer command_buffer,
      uint64_t gpu_base;
      int32_t result;
  
@@ -3673,7 +3793,7 @@ index 356b9c8..d062d05 100644
      result = agcRuntimeAllocate(command_buffer->device,
          AGC_MEMORY_HEAP_FLEXIBLE, layout->total_size, 256u, 0u,
          AGC_OBJECT_TYPE_COMMAND_BUFFER, command_buffer, &allocation);
-@@ -6210,6 +7063,8 @@ static int32_t agcPrepareCommandResources(AgcCommandBuffer command_buffer,
+@@ -6210,6 +7072,8 @@ static int32_t agcPrepareCommandResources(AgcCommandBuffer command_buffer,
              return result;
          }
      }
@@ -3682,7 +3802,7 @@ index 356b9c8..d062d05 100644
      command_buffer->resource_allocation = allocation;
      return AGC_OK;
  }
-@@ -6238,8 +7093,12 @@ int32_t PS5_SYSV_ABI agcCreateCommandBuffer(AgcDevice device,
+@@ -6238,8 +7102,12 @@ int32_t PS5_SYSV_ABI agcCreateCommandBuffer(AgcDevice device,
      command_buffer = agcCreateChild(device, sizeof(*command_buffer));
      if (!command_buffer)
          return AGC_ERROR_OUT_OF_MEMORY;
@@ -3696,7 +3816,7 @@ index 356b9c8..d062d05 100644
          command_buffer, &command_buffer->allocation);
      if (result != AGC_OK) {
          agcDestroyChild(device, command_buffer);
-@@ -6371,6 +7230,11 @@ int32_t PS5_SYSV_ABI agcCmdBindGraphicsPipeline(
+@@ -6371,6 +7239,11 @@ int32_t PS5_SYSV_ABI agcCmdBindGraphicsPipeline(
      uint32_t defaults[AGC_RUNTIME_GRAPHICS_DEFAULT_DWORDS];
      SceAgcCb defaults_cb;
      uint32_t defaults_dword_count;
@@ -3708,7 +3828,7 @@ index 356b9c8..d062d05 100644
      int32_t result;
  
      if (!command_buffer || command_buffer->magic != AGC_MAGIC_COMMAND_BUFFER ||
-@@ -6382,11 +7246,23 @@ int32_t PS5_SYSV_ABI agcCmdBindGraphicsPipeline(
+@@ -6382,11 +7255,23 @@ int32_t PS5_SYSV_ABI agcCmdBindGraphicsPipeline(
      if (command_buffer->state != AGC_COMMAND_BUFFER_STATE_RECORDING ||
          command_buffer->queue_type != kAgcQueueGraphics)
          return AGC_ERROR_INVALID_STATE;
@@ -3736,7 +3856,7 @@ index 356b9c8..d062d05 100644
          agcCbInit(&defaults_cb, defaults, sizeof(defaults));
          /* Mirror the qualified FW 5.50 graphics path: establish V8 register
           * defaults before runtime-owned shader and fixed-function state.
-@@ -6396,18 +7272,42 @@ int32_t PS5_SYSV_ABI agcCmdBindGraphicsPipeline(
+@@ -6396,18 +7281,42 @@ int32_t PS5_SYSV_ABI agcCmdBindGraphicsPipeline(
              return result == AGC_ERROR_BUFFER_TOO_SMALL ?
                  AGC_ERROR_COMMAND_SPACE_EXHAUSTED : result;
          defaults_dword_count = (uint32_t)agcCbUsedDwords(&defaults_cb);
@@ -3785,7 +3905,7 @@ index 356b9c8..d062d05 100644
          commands = agcCbAllocDwords(
              &command_buffer->cursor, pipeline->bind_dword_count);
          if (!commands)
-@@ -6415,7 +7315,17 @@ int32_t PS5_SYSV_ABI agcCmdBindGraphicsPipeline(
+@@ -6415,7 +7324,17 @@ int32_t PS5_SYSV_ABI agcCmdBindGraphicsPipeline(
          memcpy(commands, pipeline->bind_words,
              pipeline->bind_dword_count * sizeof(uint32_t));
          command_buffer->graphics_pipeline = pipeline;
@@ -3804,7 +3924,7 @@ index 356b9c8..d062d05 100644
      }
      return AGC_OK;
  }
-@@ -6494,7 +7404,7 @@ int32_t PS5_SYSV_ABI agcCmdBindColorTargets(
+@@ -6494,7 +7413,7 @@ int32_t PS5_SYSV_ABI agcCmdBindColorTargets(
              &layout);
          if (result != AGC_OK)
              return result;
@@ -3813,7 +3933,7 @@ index 356b9c8..d062d05 100644
          if (layout.depth != 1u || layout.offset > UINT64_MAX - address)
              return AGC_ERROR_RESOURCE_INVALID;
          result = agcGfx1013InitColorTarget(&states[i], address + layout.offset,
-@@ -6649,7 +7559,7 @@ int32_t PS5_SYSV_ABI agcCmdBindDepthStencilTarget(
+@@ -6649,7 +7568,7 @@ int32_t PS5_SYSV_ABI agcCmdBindDepthStencilTarget(
              owner != kAgcResourceOwnerGraphics)
              return AGC_ERROR_INVALID_STATE;
      }
@@ -3822,7 +3942,7 @@ index 356b9c8..d062d05 100644
      state.width = layout.width;
      state.height = layout.height;
      state.format = format;
-@@ -6699,6 +7609,7 @@ int32_t PS5_SYSV_ABI agcCmdBindDepthStencilTarget(
+@@ -6699,6 +7618,7 @@ int32_t PS5_SYSV_ABI agcCmdBindDepthStencilTarget(
  int32_t PS5_SYSV_ABI agcCmdBindComputePipeline(
      AgcCommandBuffer command_buffer, AgcComputePipeline pipeline)
  {
@@ -3830,7 +3950,7 @@ index 356b9c8..d062d05 100644
      int32_t result;
  
      if (!command_buffer || command_buffer->magic != AGC_MAGIC_COMMAND_BUFFER ||
-@@ -6708,17 +7619,32 @@ int32_t PS5_SYSV_ABI agcCmdBindComputePipeline(
+@@ -6708,17 +7628,32 @@ int32_t PS5_SYSV_ABI agcCmdBindComputePipeline(
          return AGC_ERROR_INVALID_ARGUMENT;
      }
      if (command_buffer->state != AGC_COMMAND_BUFFER_STATE_RECORDING ||
@@ -3873,7 +3993,7 @@ index 356b9c8..d062d05 100644
          pipeline->recorded_refs++;
      }
      return AGC_OK;
-@@ -6790,6 +7716,18 @@ static int agcCommandRetainBuffer(AgcCommandBuffer command_buffer,
+@@ -6790,6 +7725,18 @@ static int agcCommandRetainBuffer(AgcCommandBuffer command_buffer,
      return 1;
  }
  
@@ -3892,7 +4012,7 @@ index 356b9c8..d062d05 100644
  static int agcCommandRetainImage(AgcCommandBuffer command_buffer,
      AgcImage image)
  {
-@@ -6830,12 +7768,17 @@ static AgcResourceOwner agcRuntimeCommandOwner(
+@@ -6830,12 +7777,17 @@ static AgcResourceOwner agcRuntimeCommandOwner(
  static int agcRuntimeUsageSupportsQueue(AgcResourceUsage usage,
      AgcQueueType queue_type)
  {
@@ -3912,7 +4032,7 @@ index 356b9c8..d062d05 100644
          return queue_type == kAgcQueueGraphics;
      return 1;
  }
-@@ -6853,9 +7796,11 @@ static int agcRuntimeBufferUsageSupports(const AgcBuffer buffer,
+@@ -6853,9 +7805,11 @@ static int agcRuntimeBufferUsageSupports(const AgcBuffer buffer,
      case kAgcResourceUsageShaderRead:
          return (buffer->usage & (AGC_BUFFER_USAGE_UNIFORM_BIT |
              AGC_BUFFER_USAGE_STORAGE_BIT | AGC_BUFFER_USAGE_VERTEX_BIT |
@@ -3925,7 +4045,7 @@ index 356b9c8..d062d05 100644
      case kAgcResourceUsageHostRead:
          return (buffer->create_flags & AGC_BUFFER_CREATE_READBACK_BIT) != 0u;
      case kAgcResourceUsageHostWrite:
-@@ -6916,6 +7861,9 @@ static int32_t agcRuntimeMapLowUsage(AgcResourceUsage usage,
+@@ -6916,6 +7870,9 @@ static int32_t agcRuntimeMapLowUsage(AgcResourceUsage usage,
      case kAgcResourceUsageShaderWrite:
          *low_usage = AGC_GFX1013_RESOURCE_USAGE_COMPUTE_WRITE;
          return AGC_OK;
@@ -3935,7 +4055,7 @@ index 356b9c8..d062d05 100644
      case kAgcResourceUsageColorTarget:
          *low_usage = AGC_GFX1013_RESOURCE_USAGE_RENDER_TARGET;
          return AGC_OK;
-@@ -6986,6 +7934,30 @@ static int agcCommandBufferRangeState(AgcCommandBuffer command_buffer,
+@@ -6986,6 +7943,30 @@ static int agcCommandBufferRangeState(AgcCommandBuffer command_buffer,
      return found;
  }
  
@@ -3966,7 +4086,7 @@ index 356b9c8..d062d05 100644
  static int agcCommandImageRangeState(AgcCommandBuffer command_buffer,
      AgcImage image, const AgcImageSubresourceRange *range,
      AgcResourceUsage *usage, AgcResourceOwner *owner)
-@@ -7102,6 +8074,31 @@ static int agcCommandRecordedReleaseOverlaps(
+@@ -7102,6 +8083,31 @@ static int agcCommandRecordedReleaseOverlaps(
      return 0;
  }
  
@@ -3998,7 +4118,7 @@ index 356b9c8..d062d05 100644
  static int32_t agcRuntimeValidateTransition(
      AgcCommandBuffer command_buffer, const AgcResourceTransition *transition,
      void **resource_out, AgcGfx1013ResourceTransition *low_transition,
-@@ -7208,7 +8205,17 @@ static int32_t agcRuntimeValidateTransition(
+@@ -7208,7 +8214,17 @@ static int32_t agcRuntimeValidateTransition(
           current_owner != transition->before_owner) &&
          flags != AGC_RESOURCE_TRANSITION_BATCH_DEPENDENCY_BIT)
          return AGC_ERROR_INVALID_STATE;
@@ -4017,7 +4137,7 @@ index 356b9c8..d062d05 100644
          int overlap;
          if (transition->resource_type == kAgcResourceTypeBuffer) {
              overlap = agcBufferTransferOverlaps((AgcBuffer)resource,
-@@ -7239,13 +8246,8 @@ static int32_t agcRuntimeValidateTransition(
+@@ -7239,13 +8255,8 @@ static int32_t agcRuntimeValidateTransition(
      if (result != AGC_OK)
          return result;
      if (flags == AGC_RESOURCE_TRANSITION_RELEASE_BIT) {
@@ -4032,7 +4152,7 @@ index 356b9c8..d062d05 100644
              transition->before_owner == transition->after_owner ||
              transition->before_owner != agcRuntimeCommandOwner(command_buffer))
              return AGC_ERROR_NOT_SUPPORTED;
-@@ -7578,6 +8580,31 @@ static int32_t agcValidateSubmissionTransitions(
+@@ -7578,6 +8589,31 @@ static int32_t agcValidateSubmissionTransitions(
                  }
              } else {
                  int overlaps;
@@ -4064,7 +4184,7 @@ index 356b9c8..d062d05 100644
                  if (record->resource_type == kAgcResourceTypeBuffer) {
                      overlaps = agcBufferTransferOverlaps(
                          (AgcBuffer)record->resource, record->buffer_offset,
-@@ -7586,7 +8613,7 @@ static int32_t agcValidateSubmissionTransitions(
+@@ -7586,7 +8622,7 @@ static int32_t agcValidateSubmissionTransitions(
                      overlaps = agcImageTransferOverlaps(
                          (AgcImage)record->resource, &record->image_range);
                  }
@@ -4073,7 +4193,7 @@ index 356b9c8..d062d05 100644
                      result = AGC_ERROR_INVALID_STATE;
                      break;
                  }
-@@ -8320,8 +9347,8 @@ int32_t PS5_SYSV_ABI agcCmdCopyBuffer(AgcCommandBuffer command_buffer,
+@@ -8320,8 +9356,8 @@ int32_t PS5_SYSV_ABI agcCmdCopyBuffer(AgcCommandBuffer command_buffer,
          AGC_RUNTIME_MAX_RECORDED_RESOURCES - required_buffers)
          return AGC_ERROR_OUT_OF_MEMORY;
      result = agcGfx1013CopyBuffer(&command_buffer->cursor,
@@ -4084,7 +4204,7 @@ index 356b9c8..d062d05 100644
          size);
      if (result != AGC_OK)
          return result == AGC_ERROR_BUFFER_TOO_SMALL ?
-@@ -8332,111 +9359,875 @@ int32_t PS5_SYSV_ABI agcCmdCopyBuffer(AgcCommandBuffer command_buffer,
+@@ -8332,111 +9368,881 @@ int32_t PS5_SYSV_ABI agcCmdCopyBuffer(AgcCommandBuffer command_buffer,
      return AGC_OK;
  }
  
@@ -4270,14 +4390,7 @@ index 356b9c8..d062d05 100644
 +    AgcBuffer destination, uint64_t destination_offset, uint64_t size,
 +    uint32_t value)
  {
-+    enum { kFillPacketDwords = 256u };
-+    uint32_t pattern[kFillPacketDwords];
-+    uint64_t data_dwords = size / sizeof(uint32_t);
-+    uint64_t packet_count = data_dwords / kFillPacketDwords +
-+        (data_dwords % kFillPacketDwords != 0u);
-+    uint64_t required_dwords;
-+    uint64_t emitted_dwords = 0u;
-     uint32_t i;
+-    uint32_t i;
 -    for (i = 0u; i < command_buffer->recorded_view_count; ++i) {
 -        if (command_buffer->recorded_views[i] == view)
 -            return 1;
@@ -4286,27 +4399,41 @@ index 356b9c8..d062d05 100644
 -        AGC_RUNTIME_MAX_RECORDED_RESOURCES)
 -        return 0;
 -    command_buffer->recorded_views[
++    const uint64_t maximum_chunk_size = UINT64_C(0x1ffffc);
++    const uint64_t packet_dwords = 7u;
++    uint64_t packet_count = size / maximum_chunk_size +
++        (size % maximum_chunk_size != 0u);
++    uint64_t required_dwords;
++    uint64_t emitted_bytes = 0u;
 +    int32_t result;
 +
 +    if (size == 0u || (size & 3u) != 0u ||
-+        packet_count > (UINT64_MAX - data_dwords) / 4u)
++        packet_count > UINT64_MAX / packet_dwords)
 +        return AGC_ERROR_INVALID_ARGUMENT;
-+    required_dwords = data_dwords + packet_count * 4u;
++    required_dwords = packet_count * packet_dwords;
 +    result = agcCommandValidateBufferWrite(command_buffer, destination,
 +        destination_offset, size, required_dwords, "agcCmdFillBuffer");
 +    if (result != AGC_OK)
 +        return result;
-+    for (i = 0u; i < kFillPacketDwords; ++i)
-+        pattern[i] = value;
-+    while (emitted_dwords < data_dwords) {
-+        uint32_t chunk = data_dwords - emitted_dwords > kFillPacketDwords ?
-+            kFillPacketDwords : (uint32_t)(data_dwords - emitted_dwords);
-+        if (!sceAgcDcbWriteData(&command_buffer->cursor, 2u, 0u,
-+                agcBufferGpuAddress(destination) + destination_offset +
-+                    emitted_dwords * sizeof(uint32_t),
-+                pattern, chunk, 1u, 1u))
++    while (emitted_bytes < size) {
++        uint64_t address = agcBufferGpuAddress(destination) +
++            destination_offset + emitted_bytes;
++        uint32_t chunk = size - emitted_bytes > maximum_chunk_size ?
++            (uint32_t)maximum_chunk_size : (uint32_t)(size - emitted_bytes);
++        uint32_t *packet = agcCbAllocDwords(&command_buffer->cursor,
++            (uint32_t)packet_dwords);
++        if (!packet)
 +            return AGC_ERROR_INTERNAL;
-+        emitted_dwords += chunk;
++        packet[0] = agcPm4Header3(AGC_PM4_OP_DMA_DATA,
++            (uint32_t)packet_dwords);
++        /* Immediate source, memory destination, and completion ordering. */
++        packet[1] = UINT32_C(0xc0000000);
++        packet[2] = value;
++        packet[3] = 0u;
++        packet[4] = (uint32_t)address;
++        packet[5] = (uint32_t)(address >> 32u);
++        packet[6] = chunk;
++        emitted_bytes += chunk;
 +    }
 +    if (!agcCommandRetainBuffer(command_buffer, destination))
 +        return AGC_ERROR_INTERNAL;
@@ -5049,7 +5176,103 @@ index 356b9c8..d062d05 100644
          command_buffer->recorded_view_count++] = view;
      view->recorded_refs++;
      return 1;
-@@ -8639,7 +10430,7 @@ static int32_t agcCommandEncodeDescriptor(
+@@ -8560,8 +10366,11 @@ static int32_t agcCommandEncodeDescriptor(
+         (uint64_t)write->array_element * mapping->byte_stride;
+     switch (mapping->type) {
+     case AGC_SHADER_DESCRIPTOR_SAMPLER:
+-        if (write->buffer || write->image_view || !write->sampler ||
+-            write->sampler->magic != AGC_MAGIC_SAMPLER ||
++        if (write->buffer || write->image_view)
++            return AGC_ERROR_RESOURCE_INVALID;
++        if (!write->sampler)
++            return AGC_OK;
++        if (write->sampler->magic != AGC_MAGIC_SAMPLER ||
+             write->sampler->device != command_buffer->device)
+             return AGC_ERROR_RESOURCE_INVALID;
+         memcpy(encoded->bytes,
+@@ -8571,8 +10380,11 @@ static int32_t agcCommandEncodeDescriptor(
+     case AGC_SHADER_DESCRIPTOR_SAMPLED_IMAGE:
+     case AGC_SHADER_DESCRIPTOR_STORAGE_IMAGE:
+     case AGC_SHADER_DESCRIPTOR_INPUT_ATTACHMENT:
+-        if (write->buffer || write->sampler || !write->image_view ||
+-            write->image_view->magic != AGC_MAGIC_IMAGE_VIEW ||
++        if (write->buffer || write->sampler)
++            return AGC_ERROR_RESOURCE_INVALID;
++        if (!write->image_view)
++            return AGC_OK;
++        if (write->image_view->magic != AGC_MAGIC_IMAGE_VIEW ||
+             write->image_view->device != command_buffer->device)
+             return AGC_ERROR_RESOURCE_INVALID;
+         if ((mapping->type == AGC_SHADER_DESCRIPTOR_STORAGE_IMAGE &&
+@@ -8591,33 +10403,46 @@ static int32_t agcCommandEncodeDescriptor(
+         encoded->view = write->image_view;
+         return AGC_OK;
+     case AGC_SHADER_DESCRIPTOR_COMBINED_IMAGE_SAMPLER:
+-        if (write->buffer || !write->image_view || !write->sampler ||
+-            write->image_view->magic != AGC_MAGIC_IMAGE_VIEW ||
+-            write->sampler->magic != AGC_MAGIC_SAMPLER ||
+-            write->image_view->device != command_buffer->device ||
+-            write->sampler->device != command_buffer->device ||
+-            (write->image_view->image->desc.usage &
+-             AGC_IMAGE_USAGE_SAMPLED_BIT) == 0u)
++        if (write->buffer)
+             return AGC_ERROR_RESOURCE_INVALID;
+-        result = agcCommandValidateDescriptorImageState(command_buffer,
+-            write->image_view, mapping);
+-        if (result != AGC_OK)
+-            return result;
+-        memcpy(encoded->bytes,
+-            agcAllocationCpuAddress(write->image_view->allocation),
+-            sizeof(AgcGfx1013ImageDescriptor));
+-        memcpy(encoded->bytes + sizeof(AgcGfx1013ImageDescriptor),
+-            agcAllocationCpuAddress(write->sampler->allocation),
+-            sizeof(AgcSamplerDescriptor));
+-        encoded->view = write->image_view;
+-        encoded->sampler = write->sampler;
++        if (write->image_view) {
++            if (write->image_view->magic != AGC_MAGIC_IMAGE_VIEW ||
++                write->image_view->device != command_buffer->device ||
++                (write->image_view->image->desc.usage &
++                 AGC_IMAGE_USAGE_SAMPLED_BIT) == 0u)
++                return AGC_ERROR_RESOURCE_INVALID;
++            result = agcCommandValidateDescriptorImageState(command_buffer,
++                write->image_view, mapping);
++            if (result != AGC_OK)
++                return result;
++            memcpy(encoded->bytes,
++                agcAllocationCpuAddress(write->image_view->allocation),
++                sizeof(AgcGfx1013ImageDescriptor));
++            encoded->view = write->image_view;
++        }
++        if (write->sampler) {
++            if (write->sampler->magic != AGC_MAGIC_SAMPLER ||
++                write->sampler->device != command_buffer->device)
++                return AGC_ERROR_RESOURCE_INVALID;
++            memcpy(encoded->bytes + sizeof(AgcGfx1013ImageDescriptor),
++                agcAllocationCpuAddress(write->sampler->allocation),
++                sizeof(AgcSamplerDescriptor));
++            encoded->sampler = write->sampler;
++        }
+         return AGC_OK;
+     case AGC_SHADER_DESCRIPTOR_UNIFORM_TEXEL_BUFFER:
+     case AGC_SHADER_DESCRIPTOR_STORAGE_TEXEL_BUFFER:
+     case AGC_SHADER_DESCRIPTOR_UNIFORM_BUFFER:
+     case AGC_SHADER_DESCRIPTOR_STORAGE_BUFFER:
+-        if (!write->buffer || write->image_view || write->sampler ||
+-            write->buffer->magic != AGC_MAGIC_BUFFER ||
++        if (write->image_view || write->sampler)
++            return AGC_ERROR_RESOURCE_INVALID;
++        if (!write->buffer) {
++            if (write->buffer_offset || write->buffer_range ||
++                write->buffer_stride)
++                return AGC_ERROR_RESOURCE_INVALID;
++            return AGC_OK;
++        }
++        if (write->buffer->magic != AGC_MAGIC_BUFFER ||
+             write->buffer->device != command_buffer->device ||
+             write->buffer->deferred ||
+             write->buffer_offset >= write->buffer->size)
+@@ -8639,7 +10464,7 @@ static int32_t agcCommandEncodeDescriptor(
              write->buffer, write->buffer_offset, range, mapping);
          if (result != AGC_OK)
              return result;
@@ -5058,7 +5281,7 @@ index 356b9c8..d062d05 100644
              write->buffer_offset;
          if (write->buffer_stride != 0u) {
              if ((range % write->buffer_stride) != 0u ||
-@@ -8856,7 +10647,7 @@ int32_t PS5_SYSV_ABI agcCmdBindVertexBuffers(AgcCommandBuffer command_buffer,
+@@ -8856,7 +10681,7 @@ int32_t PS5_SYSV_ABI agcCmdBindVertexBuffers(AgcCommandBuffer command_buffer,
              return AGC_ERROR_RESOURCE_INVALID;
          result = agcGfx1013BufferDescriptorEncode(
              &descriptors[bindings[i].binding],
@@ -5067,7 +5290,48 @@ index 356b9c8..d062d05 100644
                  bindings[i].offset,
              bindings[i].stride, (uint32_t)(range / bindings[i].stride));
          if (result != AGC_OK)
-@@ -9087,6 +10878,99 @@ static int32_t agcCommandEmitGraphicsUserData(SceAgcCb *cb,
+@@ -8947,11 +10772,18 @@ int32_t PS5_SYSV_ABI agcCmdPushConstants(AgcCommandBuffer command_buffer,
+         if (!covered)
+             return AGC_ERROR_VALIDATION_FAILED;
+     }
+-    memcpy((uint8_t *)agcAllocationCpuAddress(
+-            command_buffer->resource_allocation) +
+-            layout->push_constant_offset + offset, data, size);
++    for (stage = 0u; stage < kAgcShaderStageCount; ++stage) {
++        if ((stage_mask & (1u << stage)) == 0u)
++            continue;
++        memcpy((uint8_t *)agcAllocationCpuAddress(
++                command_buffer->resource_allocation) +
++                layout->push_constant_offset +
++                (uint64_t)stage * layout->push_constant_stride + offset,
++            data, size);
++    }
+     result = agcFlushRuntimeAllocation(command_buffer->resource_allocation,
+-        layout->push_constant_offset + offset, size);
++        layout->push_constant_offset,
++        (uint64_t)layout->push_constant_stride * kAgcShaderStageCount);
+     if (result != AGC_OK)
+         return result;
+     mask = size == 256u ? UINT64_MAX :
+@@ -9033,7 +10865,8 @@ static int32_t agcCommandUserSgprValue(AgcCommandBuffer command_buffer,
+     case AGC_SHADER_USER_SGPR_PUSH_CONSTANT_POINTER:
+         if (!gpu_base || layout->push_constant_size == 0u)
+             return AGC_ERROR_RESOURCE_NOT_BOUND;
+-        *value = (uint32_t)(gpu_base + layout->push_constant_offset);
++        *value = (uint32_t)(gpu_base + layout->push_constant_offset +
++            (uint64_t)shader->stage * layout->push_constant_stride);
+         return AGC_OK;
+     case AGC_SHADER_USER_SGPR_INLINE_PUSH_CONSTANT:
+         if (!cpu_base || sgpr->index >= 64u ||
+@@ -9041,6 +10874,7 @@ static int32_t agcCommandUserSgprValue(AgcCommandBuffer command_buffer,
+              (UINT64_C(1) << sgpr->index)) == 0u)
+             return AGC_ERROR_RESOURCE_NOT_BOUND;
+         memcpy(value, cpu_base + layout->push_constant_offset +
++            (uint64_t)shader->stage * layout->push_constant_stride +
+             sgpr->index * sizeof(uint32_t), sizeof(*value));
+         return AGC_OK;
+     case AGC_SHADER_USER_SGPR_VERTEX_BUFFER_TABLE:
+@@ -9087,6 +10921,99 @@ static int32_t agcCommandEmitGraphicsUserData(SceAgcCb *cb,
      return AGC_OK;
  }
  
@@ -5167,7 +5431,7 @@ index 356b9c8..d062d05 100644
  static int32_t agcCommandBuildComputeUserData(
      AgcCommandBuffer command_buffer, AgcShader shader,
      uint32_t values[16], uint32_t *value_count)
-@@ -9229,6 +11113,71 @@ int32_t PS5_SYSV_ABI agcCmdSetScissor(
+@@ -9229,6 +11156,71 @@ int32_t PS5_SYSV_ABI agcCmdSetScissor(
      return result;
  }
  
@@ -5239,7 +5503,7 @@ index 356b9c8..d062d05 100644
  int32_t PS5_SYSV_ABI agcCmdSetBlendConstants(
      AgcCommandBuffer command_buffer, const float constants[4])
  {
-@@ -9340,6 +11289,32 @@ int32_t PS5_SYSV_ABI agcCmdSetDepthBias(
+@@ -9340,6 +11332,32 @@ int32_t PS5_SYSV_ABI agcCmdSetDepthBias(
      return result;
  }
  
@@ -5272,7 +5536,7 @@ index 356b9c8..d062d05 100644
  int32_t PS5_SYSV_ABI agcCmdBindIndexBuffer(AgcCommandBuffer command_buffer,
      AgcBuffer buffer, uint64_t offset, AgcIndexSize index_size)
  {
-@@ -9357,22 +11332,141 @@ int32_t PS5_SYSV_ABI agcCmdBindIndexBuffer(AgcCommandBuffer command_buffer,
+@@ -9357,22 +11375,141 @@ int32_t PS5_SYSV_ABI agcCmdBindIndexBuffer(AgcCommandBuffer command_buffer,
          return AGC_ERROR_INVALID_STATE;
      if (command_buffer->index_buffer && command_buffer->index_buffer != buffer)
          return AGC_ERROR_NOT_SUPPORTED;
@@ -5428,7 +5692,7 @@ index 356b9c8..d062d05 100644
      return AGC_OK;
  }
  
-@@ -9432,9 +11526,11 @@ int32_t PS5_SYSV_ABI agcCmdDrawIndexed(AgcCommandBuffer command_buffer,
+@@ -9432,9 +11569,11 @@ int32_t PS5_SYSV_ABI agcCmdDrawIndexed(AgcCommandBuffer command_buffer,
              tessellation_input_control_points != 0u)
          return AGC_ERROR_VALIDATION_FAILED;
      if (!command_buffer->graphics_pipeline->hull_shader &&
@@ -5442,7 +5706,7 @@ index 356b9c8..d062d05 100644
          return AGC_ERROR_VALIDATION_FAILED;
      vertex_stage = command_buffer->graphics_pipeline->hull_shader ?
          command_buffer->graphics_pipeline->hull_shader :
-@@ -9481,6 +11577,16 @@ int32_t PS5_SYSV_ABI agcCmdDrawIndexed(AgcCommandBuffer command_buffer,
+@@ -9481,6 +11620,16 @@ int32_t PS5_SYSV_ABI agcCmdDrawIndexed(AgcCommandBuffer command_buffer,
              "indexed draw byte range overruns the bound index buffer");
      }
      agcCbInit(&temporary_cb, temporary, sizeof(temporary));
@@ -5459,7 +5723,7 @@ index 356b9c8..d062d05 100644
      if (command_buffer->graphics_pipeline->hull_shader) {
          result = agcCommandEmitGraphicsUserData(&temporary_cb, command_buffer,
              command_buffer->graphics_pipeline->hull_shader,
-@@ -9502,7 +11608,7 @@ int32_t PS5_SYSV_ABI agcCmdDrawIndexed(AgcCommandBuffer command_buffer,
+@@ -9502,7 +11651,7 @@ int32_t PS5_SYSV_ABI agcCmdDrawIndexed(AgcCommandBuffer command_buffer,
          command_buffer->index_size, 0u);
      (void)sceAgcDcbSetNumInstances(&temporary_cb, instance_count);
      (void)sceAgcDcbDrawIndex(&temporary_cb, index_count,
@@ -5468,7 +5732,7 @@ index 356b9c8..d062d05 100644
              command_buffer->index_offset + byte_offset,
          0u);
      dword_count = (uint32_t)agcCbUsedDwords(&temporary_cb);
-@@ -9521,6 +11627,217 @@ int32_t PS5_SYSV_ABI agcCmdDrawIndexed(AgcCommandBuffer command_buffer,
+@@ -9521,6 +11670,217 @@ int32_t PS5_SYSV_ABI agcCmdDrawIndexed(AgcCommandBuffer command_buffer,
      return AGC_OK;
  }
  
@@ -5686,7 +5950,7 @@ index 356b9c8..d062d05 100644
  int32_t PS5_SYSV_ABI agcCmdDispatch(AgcCommandBuffer command_buffer,
      uint32_t group_count_x, uint32_t group_count_y, uint32_t group_count_z)
  {
-@@ -9541,7 +11858,8 @@ int32_t PS5_SYSV_ABI agcCmdDispatch(AgcCommandBuffer command_buffer,
+@@ -9541,7 +11901,8 @@ int32_t PS5_SYSV_ABI agcCmdDispatch(AgcCommandBuffer command_buffer,
          return AGC_ERROR_INVALID_ARGUMENT;
      }
      if (command_buffer->state != AGC_COMMAND_BUFFER_STATE_RECORDING ||
@@ -5696,7 +5960,7 @@ index 356b9c8..d062d05 100644
          !command_buffer->compute_pipeline)
          return agcDebugReport(command_buffer->device,
              AGC_DEBUG_MESSAGE_SEVERITY_ERROR_BIT,
-@@ -9549,7 +11867,7 @@ int32_t PS5_SYSV_ABI agcCmdDispatch(AgcCommandBuffer command_buffer,
+@@ -9549,7 +11910,7 @@ int32_t PS5_SYSV_ABI agcCmdDispatch(AgcCommandBuffer command_buffer,
              AGC_ERROR_INVALID_STATE, "agcCmdDispatch",
              AGC_OBJECT_TYPE_COMMAND_BUFFER,
              command_buffer->allocation->debug_name,
@@ -5705,7 +5969,7 @@ index 356b9c8..d062d05 100644
      if (group_count_x == 0u || group_count_y == 0u || group_count_z == 0u)
          return AGC_ERROR_INVALID_ARGUMENT;
      pipeline = command_buffer->compute_pipeline;
-@@ -9611,6 +11929,98 @@ int32_t PS5_SYSV_ABI agcCmdDispatch(AgcCommandBuffer command_buffer,
+@@ -9611,6 +11972,98 @@ int32_t PS5_SYSV_ABI agcCmdDispatch(AgcCommandBuffer command_buffer,
      return AGC_OK;
  }
  
@@ -5804,7 +6068,7 @@ index 356b9c8..d062d05 100644
  int32_t PS5_SYSV_ABI agcCreateGpuLabel(
      AgcDevice device, const AgcGpuLabelDesc *desc, AgcGpuLabel *label_out)
  {
-@@ -10744,6 +13154,12 @@ static AgcRuntimeAllocation *agcObjectAllocation(AgcDevice device,
+@@ -10744,6 +13197,12 @@ static AgcRuntimeAllocation *agcObjectAllocation(AgcDevice device,
          return sampler->magic == AGC_MAGIC_SAMPLER && sampler->device == device ?
              sampler->allocation : NULL;
      }
@@ -5817,7 +6081,7 @@ index 356b9c8..d062d05 100644
      default:
          return NULL;
      }
-@@ -10883,8 +13299,8 @@ int32_t PS5_SYSV_ABI agcWriteBuffer(
+@@ -10883,8 +13342,8 @@ int32_t PS5_SYSV_ABI agcWriteBuffer(
              AGC_OBJECT_TYPE_BUFFER, buffer->allocation->debug_name,
              "buffer upload requires a live upload buffer and a nonempty in-range byte interval");
      memcpy((uint8_t *)buffer->storage + offset, data, (size_t)size);
@@ -5828,7 +6092,7 @@ index 356b9c8..d062d05 100644
  }
  
  int32_t PS5_SYSV_ABI agcReadBuffer(
-@@ -10905,13 +13321,133 @@ int32_t PS5_SYSV_ABI agcReadBuffer(
+@@ -10905,13 +13364,133 @@ int32_t PS5_SYSV_ABI agcReadBuffer(
              AGC_ERROR_INVALID_ARGUMENT, "agcReadBuffer",
              AGC_OBJECT_TYPE_BUFFER, buffer->allocation->debug_name,
              "buffer readback requires a live readback buffer and a nonempty in-range byte interval");
@@ -5964,7 +6228,7 @@ index 356b9c8..d062d05 100644
  int32_t PS5_SYSV_ABI agcWriteImage(
      AgcImage image, uint64_t offset, const void *data, uint64_t size)
  {
-@@ -10929,10 +13465,9 @@ int32_t PS5_SYSV_ABI agcWriteImage(
+@@ -10929,10 +13508,9 @@ int32_t PS5_SYSV_ABI agcWriteImage(
              AGC_ERROR_INVALID_ARGUMENT, "agcWriteImage",
              AGC_OBJECT_TYPE_IMAGE, image->allocation->debug_name,
              "image upload requires a live transfer-destination image and a nonempty in-range byte interval");
@@ -5978,7 +6242,7 @@ index 356b9c8..d062d05 100644
  }
  
  int32_t PS5_SYSV_ABI agcReadImage(
-@@ -10954,11 +13489,11 @@ int32_t PS5_SYSV_ABI agcReadImage(
+@@ -10954,11 +13532,11 @@ int32_t PS5_SYSV_ABI agcReadImage(
              AGC_ERROR_INVALID_ARGUMENT, "agcReadImage",
              AGC_OBJECT_TYPE_IMAGE, image->allocation->debug_name,
              "image readback requires a live transfer-source image and a nonempty in-range byte interval");
@@ -6215,7 +6479,7 @@ index ee7def5..e2b86e7 100644
      TEST_RUN(test_gfx1013_blend_depth_stencil_packets);
      TEST_RUN(test_gfx1013_depth_surface_packets);
 diff --git a/tests/test_runtime.c b/tests/test_runtime.c
-index 39c5ba3..6fe4511 100644
+index 39c5ba3..a7a2256 100644
 --- a/tests/test_runtime.c
 +++ b/tests/test_runtime.c
 @@ -24,6 +24,8 @@
@@ -6227,7 +6491,34 @@ index 39c5ba3..6fe4511 100644
  static AgcDevice create_device(void)
  {
      AgcDeviceDesc desc = AGC_DEVICE_DESC_INIT;
-@@ -459,7 +461,7 @@ static AgcShader create_ngg_shader_bundle(AgcDevice device,
+@@ -217,6 +219,26 @@ static int runtime_has_opcode(const uint32_t *commands, uint32_t used,
+     return 0;
+ }
+ 
++static int runtime_has_immediate_dma_fill(const uint32_t *commands,
++    uint32_t used, uint32_t value, uint32_t size)
++{
++    uint32_t cursor = 0u;
++
++    while (cursor < used) {
++        uint32_t length = agcPm4Length(commands[cursor]);
++        if (length < 2u || length > used - cursor)
++            return 0;
++        if (agcPm4Opcode(commands[cursor]) == AGC_PM4_OP_DMA_DATA &&
++            length == 7u && commands[cursor + 1u] == UINT32_C(0xc0000000) &&
++            commands[cursor + 2u] == value &&
++            commands[cursor + 3u] == 0u &&
++            commands[cursor + 6u] == size)
++            return 1;
++        cursor += length;
++    }
++    return 0;
++}
++
+ static uint32_t runtime_count_opcode(const uint32_t *commands, uint32_t used,
+     uint32_t opcode)
+ {
+@@ -459,7 +481,7 @@ static AgcShader create_ngg_shader_bundle(AgcDevice device,
  
      reflection.stage = stage;
      reflection.flags |= AGC_SHADER_REFLECTION_NGG_BIT;
@@ -6236,7 +6527,7 @@ index 39c5ba3..6fe4511 100644
          reflection.flags |= AGC_SHADER_REFLECTION_FUSED_STAGE_BIT;
      reflection.shader_record_version = AGC_SHADER_RECORD_VERSION_GEN5;
      reflection.compiler_api_version = AGC_SHADER_COMPILER_API_VERSION;
-@@ -595,6 +597,7 @@ static void test_runtime_descriptor_and_info_contract(void)
+@@ -595,6 +617,7 @@ static void test_runtime_descriptor_and_info_contract(void)
  {
      AgcDeviceDesc desc = AGC_DEVICE_DESC_INIT;
      AgcRuntimeInfo info = AGC_RUNTIME_INFO_INIT;
@@ -6244,7 +6535,7 @@ index 39c5ba3..6fe4511 100644
      AgcDevice device = NULL;
  
      desc.version++;
-@@ -635,6 +638,22 @@ static void test_runtime_descriptor_and_info_contract(void)
+@@ -635,6 +658,22 @@ static void test_runtime_descriptor_and_info_contract(void)
          TEST_ASSERT_EQ(info.qualification[i], AGC_QUALIFICATION_HOST_TESTED,
              "generic runtime capabilities are host-tested");
      }
@@ -6267,7 +6558,7 @@ index 39c5ba3..6fe4511 100644
  
      info = (AgcRuntimeInfo)AGC_RUNTIME_INFO_INIT;
      info.reserved[0] = 1u;
-@@ -645,6 +664,63 @@ static void test_runtime_descriptor_and_info_contract(void)
+@@ -645,6 +684,63 @@ static void test_runtime_descriptor_and_info_contract(void)
          "native device destruction succeeds");
  }
  
@@ -6331,7 +6622,20 @@ index 39c5ba3..6fe4511 100644
  static void test_runtime_optional_debug_callback(void)
  {
      AgcDevice device = create_device();
-@@ -1845,9 +1921,13 @@ static void test_runtime_compute_submission(void)
+@@ -989,6 +1085,12 @@ static void test_runtime_invalid_program_diagnostic_matrix(void)
+         expect_runtime_debug(&probe, 12u,
+             AGC_DEBUG_MESSAGE_CATEGORY_RESOURCE_STATE_BIT,
+             AGC_ERROR_RESOURCE_NOT_BOUND, "agcCmdDispatch", "missing");
++        write.type = AGC_SHADER_DESCRIPTOR_STORAGE_BUFFER;
++        write.buffer = NULL;
++        TEST_ASSERT_EQ(agcCmdBindDescriptors(command, 1u, &write), AGC_OK,
++            "null descriptor satisfies the reflected binding");
++        TEST_ASSERT_EQ(agcCmdDispatch(command, 1u, 1u, 1u), AGC_OK,
++            "dispatch accepts an explicitly bound null descriptor");
+         TEST_ASSERT_EQ(agcResetCommandBuffer(command), AGC_OK,
+             "descriptor diagnostic command resets");
+         TEST_ASSERT_EQ(agcDestroyBuffer(source), AGC_OK,
+@@ -1845,9 +1947,13 @@ static void test_runtime_compute_submission(void)
      AgcShader shader = create_shader(device, kAgcShaderStageCs);
      AgcComputePipelineDesc pipeline_desc = AGC_COMPUTE_PIPELINE_DESC_INIT;
      AgcCommandBufferDesc command_desc = AGC_COMMAND_BUFFER_DESC_INIT;
@@ -6345,7 +6649,7 @@ index 39c5ba3..6fe4511 100644
      AgcFence fence = NULL;
      AgcSubmitInfo submit = AGC_SUBMIT_INFO_INIT;
      AgcFenceInfo fence_info = AGC_FENCE_INFO_INIT;
-@@ -1856,15 +1936,24 @@ static void test_runtime_compute_submission(void)
+@@ -1856,15 +1962,24 @@ static void test_runtime_compute_submission(void)
      uint32_t defaults[512] = {0};
      SceAgcCb defaults_cb;
      uint32_t owner = UINT32_MAX;
@@ -6371,7 +6675,7 @@ index 39c5ba3..6fe4511 100644
      TEST_ASSERT_EQ(agcCreateFence(device, &fence_desc, &fence), AGC_OK,
          "compute fence creation succeeds");
      TEST_ASSERT_EQ(agcBeginCommandBuffer(command_buffer), AGC_OK,
-@@ -1873,12 +1962,36 @@ static void test_runtime_compute_submission(void)
+@@ -1873,12 +1988,36 @@ static void test_runtime_compute_submission(void)
          AGC_ERROR_INVALID_STATE, "dispatch requires a bound pipeline");
      TEST_ASSERT_EQ(agcCmdBindComputePipeline(command_buffer, pipeline), AGC_OK,
          "compute pipeline bind succeeds");
@@ -6408,7 +6712,7 @@ index 39c5ba3..6fe4511 100644
  
      submit.command_buffer_count = 1u;
      submit.command_buffers = &command_buffer;
-@@ -1895,17 +2008,17 @@ static void test_runtime_compute_submission(void)
+@@ -1895,17 +2034,17 @@ static void test_runtime_compute_submission(void)
      TEST_ASSERT(captured->dword_count > 36u,
          "compute submission includes qualified defaults and dispatch state");
      TEST_ASSERT_EQ(captured->dword_count,
@@ -6433,7 +6737,7 @@ index 39c5ba3..6fe4511 100644
      TEST_ASSERT_EQ(agcGetFenceStatus(fence), AGC_OK,
          "successful compute submission signals fence");
      TEST_ASSERT_EQ(agcWaitFence(fence, 1u), AGC_OK,
-@@ -1947,11 +2060,90 @@ static void test_runtime_compute_submission(void)
+@@ -1947,11 +2086,90 @@ static void test_runtime_compute_submission(void)
          "compute command buffer destroys");
      TEST_ASSERT_EQ(agcDestroyComputePipeline(pipeline), AGC_OK,
          "compute pipeline destroys after reset");
@@ -6524,7 +6828,7 @@ index 39c5ba3..6fe4511 100644
  static void test_runtime_empty_submission_eop_diagnostic(void)
  {
      AgcDevice device = create_device();
-@@ -2294,6 +2486,8 @@ static void test_runtime_compiler_graphics_sidecar(void)
+@@ -2294,6 +2512,8 @@ static void test_runtime_compiler_graphics_sidecar(void)
          "compiler-sidecar viewport binds");
      TEST_ASSERT_EQ(agcCmdSetScissor(command, &scissor), AGC_OK,
          "compiler-sidecar scissor binds");
@@ -6533,7 +6837,7 @@ index 39c5ba3..6fe4511 100644
      TEST_ASSERT_EQ(agcCmdBindIndexBuffer(command, index_buffer, 2u,
          kAgcIndexSize16), AGC_ERROR_INVALID_STATE,
          "untransitioned index buffer cannot bind on graphics");
-@@ -2413,7 +2607,7 @@ static void test_runtime_indexed_graphics_submission(void)
+@@ -2413,7 +2633,7 @@ static void test_runtime_indexed_graphics_submission(void)
      TEST_ASSERT_EQ(agcQueueSubmit(queue, &submit, fence), AGC_OK,
          "indexed graphics command buffer submits");
      captured = agcDriverDebugLastDcbSubmit();
@@ -6542,7 +6846,7 @@ index 39c5ba3..6fe4511 100644
          "indexed graphics submission includes qualified defaults and draw");
      words = (const uint32_t *)(uintptr_t)captured->command_address;
      TEST_ASSERT_EQ(captured->command_address & 0xffu, 0u,
-@@ -3047,8 +3241,12 @@ static void test_runtime_copy_buffer_submission(void)
+@@ -3047,8 +3267,12 @@ static void test_runtime_copy_buffer_submission(void)
      AgcBuffer destination = NULL;
      AgcCommandBuffer command_buffer = NULL;
      AgcFence fence = NULL;
@@ -6555,7 +6859,7 @@ index 39c5ba3..6fe4511 100644
      uint32_t owner = UINT32_MAX;
  
      source_desc.size = 64u;
-@@ -3064,6 +3262,12 @@ static void test_runtime_copy_buffer_submission(void)
+@@ -3064,6 +3288,12 @@ static void test_runtime_copy_buffer_submission(void)
          "copy destination buffer creates");
      TEST_ASSERT_EQ(agcCreateCommandBuffer(device, &command_desc,
          &command_buffer), AGC_OK, "copy command buffer creates");
@@ -6568,7 +6872,7 @@ index 39c5ba3..6fe4511 100644
      TEST_ASSERT_EQ(agcCreateFence(device, &fence_desc, &fence), AGC_OK,
          "copy fence creates");
      TEST_ASSERT_EQ(agcBeginCommandBuffer(command_buffer), AGC_OK,
-@@ -3091,9 +3295,21 @@ static void test_runtime_copy_buffer_submission(void)
+@@ -3091,9 +3321,21 @@ static void test_runtime_copy_buffer_submission(void)
          AGC_OK, "copy source and destination transitions record");
      TEST_ASSERT_EQ(agcCmdCopyBuffer(command_buffer, source, 16u, destination,
          16u, 32u), AGC_OK, "typed partial-range copy records DMA packet");
@@ -6577,7 +6881,7 @@ index 39c5ba3..6fe4511 100644
 +        "typed buffer update embeds data in a WRITE_DATA packet");
 +    TEST_ASSERT_EQ(agcCmdFillBuffer(command_buffer, destination, 24u, 8u,
 +        UINT32_C(0xa5a5a5a5)), AGC_OK,
-+        "typed buffer fill embeds a repeated WRITE_DATA payload");
++        "typed buffer fill records an immediate DMA_DATA packet");
      TEST_ASSERT_EQ(agcCmdCopyBuffer(command_buffer, source, 0u, destination,
          0u, 4u), AGC_ERROR_INVALID_STATE,
          "copy rejects bytes outside transitioned ranges");
@@ -6590,17 +6894,19 @@ index 39c5ba3..6fe4511 100644
      TEST_ASSERT_EQ(agcCmdCopyBuffer(command_buffer, destination, 0u,
          destination, 4u, 32u), AGC_ERROR_INVALID_ARGUMENT,
          "overlapping copy rejects without command mutation");
-@@ -3114,6 +3330,9 @@ static void test_runtime_copy_buffer_submission(void)
+@@ -3114,6 +3356,11 @@ static void test_runtime_copy_buffer_submission(void)
      TEST_ASSERT(captured != NULL && owner != UINT32_MAX &&
          runtime_has_opcode(words, captured->dword_count, AGC_PM4_OP_DMA_DATA),
          "typed copy submit contains DMA_DATA");
 +    TEST_ASSERT(runtime_has_opcode(words, captured->dword_count,
-+        AGC_PM4_OP_WRITE_DATA),
-+        "typed update and fill submit contains WRITE_DATA");
++        AGC_PM4_OP_WRITE_DATA), "typed update submit contains WRITE_DATA");
++    TEST_ASSERT(runtime_has_immediate_dma_fill(words, captured->dword_count,
++        UINT32_C(0xa5a5a5a5), 8u),
++        "typed fill submit contains the canonical immediate DMA_DATA form");
      TEST_ASSERT_EQ(agcDestroyBuffer(source), AGC_ERROR_BUSY,
          "submitted copy retains source through command reset");
      TEST_ASSERT_EQ(agcResetCommandBuffer(command_buffer), AGC_OK,
-@@ -3259,7 +3478,7 @@ static void test_runtime_image_subresource_states(void)
+@@ -3259,7 +3506,7 @@ static void test_runtime_image_subresource_states(void)
      image_desc.usage = AGC_IMAGE_USAGE_SAMPLED_BIT |
          AGC_IMAGE_USAGE_TRANSFER_SRC_BIT;
      command_desc.queue_type = kAgcQueueCompute;
@@ -6609,7 +6915,7 @@ index 39c5ba3..6fe4511 100644
      TEST_ASSERT_EQ(agcCreateImage(device, &image_desc, &image), AGC_OK,
          "subresource-state image creates");
      TEST_ASSERT_EQ(agcCreateCommandBuffer(device, &command_desc, &command),
-@@ -3503,6 +3722,166 @@ static void test_runtime_copy_image_submission(void)
+@@ -3503,6 +3750,166 @@ static void test_runtime_copy_image_submission(void)
          "image-copy device destroys");
  }
  
@@ -6776,7 +7082,7 @@ index 39c5ba3..6fe4511 100644
  static void test_runtime_compute_copy_shader_batch(void)
  {
      AgcDevice device = create_device();
-@@ -5896,6 +6275,10 @@ static void test_runtime_dynamic_graphics_state(void)
+@@ -5896,6 +6303,10 @@ static void test_runtime_dynamic_graphics_state(void)
      AgcFenceDesc fence_desc = AGC_FENCE_DESC_INIT;
      AgcViewport viewport = AGC_VIEWPORT_INIT;
      AgcScissor scissor = AGC_SCISSOR_INIT;
@@ -6787,7 +7093,7 @@ index 39c5ba3..6fe4511 100644
      AgcDepthBias depth_bias = AGC_DEPTH_BIAS_INIT;
      AgcDepthStencilTargetBinding depth_target =
          AGC_DEPTH_STENCIL_TARGET_BINDING_INIT;
-@@ -5929,7 +6312,8 @@ static void test_runtime_dynamic_graphics_state(void)
+@@ -5929,7 +6340,8 @@ static void test_runtime_dynamic_graphics_state(void)
          AGC_DYNAMIC_STATE_SCISSOR_BIT |
          AGC_DYNAMIC_STATE_BLEND_CONSTANTS_BIT |
          AGC_DYNAMIC_STATE_STENCIL_REFERENCE_BIT |
@@ -6797,7 +7103,7 @@ index 39c5ba3..6fe4511 100644
      TEST_ASSERT_EQ(agcCreateGraphicsPipeline(device, &pipeline_desc,
          &pipeline), AGC_OK, "dynamic-state graphics pipeline creates");
      buffer_desc.size = 64u;
-@@ -5987,6 +6371,20 @@ static void test_runtime_dynamic_graphics_state(void)
+@@ -5987,6 +6399,20 @@ static void test_runtime_dynamic_graphics_state(void)
          "valid viewport records");
      TEST_ASSERT_EQ(agcCmdSetScissor(command, &scissor), AGC_OK,
          "valid scissor records");
@@ -6818,7 +7124,7 @@ index 39c5ba3..6fe4511 100644
      TEST_ASSERT_EQ(agcCmdSetBlendConstants(command, blend_constants), AGC_OK,
          "valid blend constants record");
      TEST_ASSERT_EQ(agcCmdSetStencilReference(command, 3u, 7u), AGC_OK,
-@@ -5999,6 +6397,11 @@ static void test_runtime_dynamic_graphics_state(void)
+@@ -5999,6 +6425,11 @@ static void test_runtime_dynamic_graphics_state(void)
      depth_bias.slope_factor = -1.5f;
      TEST_ASSERT_EQ(agcCmdSetDepthBias(command, &depth_bias), AGC_OK,
          "valid dynamic depth bias records");
@@ -6830,7 +7136,7 @@ index 39c5ba3..6fe4511 100644
      TEST_ASSERT_EQ(agcCmdDrawIndexed(command, 3u, 1u, 0u, 0, 0u), AGC_OK,
          "draw records after all required dynamic state");
      TEST_ASSERT_EQ(agcEndCommandBuffer(command), AGC_OK,
-@@ -6033,6 +6436,16 @@ static void test_runtime_dynamic_graphics_state(void)
+@@ -6033,6 +6464,16 @@ static void test_runtime_dynamic_graphics_state(void)
          "dynamic depth bias emits its depth-format control");
      TEST_ASSERT_EQ(value, 0x000001e9u,
          "dynamic D32 depth-bias format control is exact");
@@ -6847,7 +7153,7 @@ index 39c5ba3..6fe4511 100644
      TEST_ASSERT_EQ(agcResetCommandBuffer(command), AGC_OK,
          "dynamic-state command buffer resets");
      TEST_ASSERT_EQ(agcDestroyFence(fence), AGC_OK,
-@@ -6220,6 +6633,7 @@ static void test_runtime_multisample_pipeline_state(void)
+@@ -6220,6 +6661,7 @@ static void test_runtime_multisample_pipeline_state(void)
      AgcShader vs = create_shader(device, kAgcShaderStageVs);
      AgcShaderReflection ps_requirements = AGC_SHADER_REFLECTION_INIT;
      AgcShader ps;
@@ -6855,7 +7161,7 @@ index 39c5ba3..6fe4511 100644
      AgcGraphicsPipelineDesc desc = AGC_GRAPHICS_PIPELINE_DESC_INIT;
      AgcMultisampleState multisample = AGC_MULTISAMPLE_STATE_INIT;
      AgcGraphicsPipeline pipeline = NULL;
-@@ -6256,10 +6670,22 @@ static void test_runtime_multisample_pipeline_state(void)
+@@ -6256,10 +6698,22 @@ static void test_runtime_multisample_pipeline_state(void)
      multisample.alpha_to_coverage_enable = 0u;
      multisample.alpha_to_one_enable = 1u;
      TEST_ASSERT_EQ(agcCreateGraphicsPipeline(device, &desc, &pipeline),
@@ -6881,7 +7187,7 @@ index 39c5ba3..6fe4511 100644
      multisample.alpha_to_one_enable = 0u;
      multisample.sample_shading_enable = 0u;
      TEST_ASSERT_EQ(agcCreateGraphicsPipeline(device, &desc, &pipeline),
-@@ -6550,6 +6976,18 @@ static void test_runtime_graphics_pipeline_compatibility_matrix(void)
+@@ -6550,6 +7004,18 @@ static void test_runtime_graphics_pipeline_compatibility_matrix(void)
          TEST_ASSERT_EQ(agcCreateGraphicsPipeline(device, &desc, &pipeline),
              AGC_ERROR_VALIDATION_FAILED,
              "unsupported attachment encoding fails closed");
@@ -6900,7 +7206,7 @@ index 39c5ba3..6fe4511 100644
          TEST_ASSERT_EQ(agcDestroyShader(ps), AGC_OK,
              "export-count pixel shader destroys");
      }
-@@ -6600,6 +7038,9 @@ static void test_runtime_graphics_pipeline_compatibility_matrix(void)
+@@ -6600,6 +7066,9 @@ static void test_runtime_graphics_pipeline_compatibility_matrix(void)
      {
          AgcGraphicsPipelineDesc desc = AGC_GRAPHICS_PIPELINE_DESC_INIT;
          AgcRasterizationState rasterization = AGC_RASTERIZATION_STATE_INIT;
@@ -6910,7 +7216,7 @@ index 39c5ba3..6fe4511 100644
          AgcShader ps = create_shader(device, kAgcShaderStagePs);
          AgcGraphicsPipeline pipeline = NULL;
  
-@@ -6608,37 +7049,54 @@ static void test_runtime_graphics_pipeline_compatibility_matrix(void)
+@@ -6608,37 +7077,54 @@ static void test_runtime_graphics_pipeline_compatibility_matrix(void)
          desc.rasterization = &rasterization;
          rasterization.polygon_mode = AGC_POLYGON_MODE_LINE;
          TEST_ASSERT_EQ(agcCreateGraphicsPipeline(device, &desc, &pipeline),
@@ -6985,7 +7291,7 @@ index 39c5ba3..6fe4511 100644
          TEST_ASSERT_EQ(agcDestroyShader(ps), AGC_OK,
              "unqualified polygon-mode pixel shader destroys");
      }
-@@ -6649,6 +7107,105 @@ static void test_runtime_graphics_pipeline_compatibility_matrix(void)
+@@ -6649,6 +7135,105 @@ static void test_runtime_graphics_pipeline_compatibility_matrix(void)
          "graphics compatibility matrix device destroys");
  }
  
@@ -7091,7 +7397,7 @@ index 39c5ba3..6fe4511 100644
  static void test_runtime_pipeline_layout_and_stage_validation(void)
  {
      AgcDevice device = create_device();
-@@ -7017,6 +7574,92 @@ static void test_runtime_indirect_descriptor_set_table(void)
+@@ -7017,6 +7602,92 @@ static void test_runtime_indirect_descriptor_set_table(void)
          "indirect descriptor device destroys");
  }
  
@@ -7184,7 +7490,7 @@ index 39c5ba3..6fe4511 100644
  static void test_runtime_geometry_pipeline_bundle(void)
  {
      AgcDevice device = create_device();
-@@ -7058,6 +7701,7 @@ static void test_runtime_geometry_pipeline_bundle(void)
+@@ -7058,6 +7729,7 @@ static void test_runtime_geometry_pipeline_bundle(void)
          device, kAgcShaderStagePs, &ps_requirements);
      pipeline_desc.geometry_shader = geometry;
      pipeline_desc.pixel_shader = pixel;
@@ -7192,7 +7498,7 @@ index 39c5ba3..6fe4511 100644
      pipeline_desc.vertex_inputs = &vertex_input;
      pipeline_desc.vertex_input_count = 1u;
      TEST_ASSERT_EQ(agcCreateGraphicsPipeline(device, &pipeline_desc,
-@@ -7149,6 +7793,7 @@ static void test_runtime_geometry_pipeline_bundle(void)
+@@ -7149,6 +7821,7 @@ static void test_runtime_geometry_pipeline_bundle(void)
          device, kAgcShaderStagePs, &ps_requirements);
      pipeline_desc.geometry_shader = geometry;
      pipeline_desc.pixel_shader = pixel;
@@ -7200,7 +7506,7 @@ index 39c5ba3..6fe4511 100644
      pipeline = NULL;
      TEST_ASSERT_EQ(agcCreateGraphicsPipeline(device, &pipeline_desc,
          &pipeline), AGC_OK,
-@@ -7202,6 +7847,7 @@ static void test_runtime_geometry_pipeline_bundle(void)
+@@ -7202,6 +7875,7 @@ static void test_runtime_geometry_pipeline_bundle(void)
          AGC_SHADER_PRIMITIVE_TRIANGLE_STRIP;
      gs_requirements.geometry_vertices_in = 3u;
      gs_requirements.geometry_invocations = 2u;
@@ -7208,7 +7514,7 @@ index 39c5ba3..6fe4511 100644
      geometry = create_ngg_shader_bundle(
          device, kAgcShaderStageGs, &gs_requirements);
      pixel = create_shader_with_reflection(
-@@ -7225,45 +7871,50 @@ static void test_runtime_geometry_pipeline_bundle(void)
+@@ -7225,45 +7899,50 @@ static void test_runtime_geometry_pipeline_bundle(void)
              AgcShaderPrimitiveTopology output;
              uint32_t vertices_in;
              uint32_t vertices_out;
@@ -7276,7 +7582,7 @@ index 39c5ba3..6fe4511 100644
          }
      }
  
-@@ -7271,6 +7922,7 @@ static void test_runtime_geometry_pipeline_bundle(void)
+@@ -7271,6 +7950,7 @@ static void test_runtime_geometry_pipeline_bundle(void)
          AGC_SHADER_PRIMITIVE_TRIANGLES;
      gs_requirements.geometry_output_primitive =
          AGC_SHADER_PRIMITIVE_TRIANGLE_STRIP;
@@ -7284,7 +7590,7 @@ index 39c5ba3..6fe4511 100644
      gs_requirements.geometry_vertices_in = 3u;
      gs_requirements.geometry_vertices_out = 3u;
      gs_requirements.scratch_bytes_per_wave = 256u;
-@@ -7394,6 +8046,7 @@ static void test_runtime_tessellation_pipeline_bundles(void)
+@@ -7394,6 +8074,7 @@ static void test_runtime_tessellation_pipeline_bundles(void)
      pipeline_desc.tessellation_control_shader = hull;
      pipeline_desc.tessellation_evaluation_shader = evaluation;
      pipeline_desc.pixel_shader = pixel;
@@ -7292,7 +7598,7 @@ index 39c5ba3..6fe4511 100644
      pipeline_desc.vertex_inputs = &vertex_input;
      pipeline_desc.vertex_input_count = 1u;
      pipeline_desc.push_constant_ranges = &hull_push_range;
-@@ -7737,6 +8390,45 @@ static void test_runtime_ps5_image_layouts(void)
+@@ -7737,6 +8418,45 @@ static void test_runtime_ps5_image_layouts(void)
          "3D mip size includes every depth slice");
      TEST_ASSERT_EQ(layout.allocation_size & 0xffffu, 0u,
          "linear 3D aggregate retains 64-KiB allocation padding");
@@ -7338,7 +7644,7 @@ index 39c5ba3..6fe4511 100644
  
      desc = (AgcImageDesc)AGC_IMAGE_DESC_INIT;
      layout = (AgcImageLayout)AGC_IMAGE_LAYOUT_INIT;
-@@ -8440,7 +9132,7 @@ static void test_runtime_present_chain(void)
+@@ -8440,7 +9160,7 @@ static void test_runtime_present_chain(void)
  
      image_desc.width = 1920u;
      image_desc.height = 1080u;
@@ -7347,7 +7653,7 @@ index 39c5ba3..6fe4511 100644
      image_desc.usage = AGC_IMAGE_USAGE_SCANOUT_BIT |
          AGC_IMAGE_USAGE_COLOR_TARGET_BIT;
      TEST_ASSERT_EQ(agcCreateImage(device, &image_desc, &images[0]), AGC_OK,
-@@ -8538,18 +9230,364 @@ static void test_runtime_present_chain(void)
+@@ -8538,18 +9258,466 @@ static void test_runtime_present_chain(void)
          "present device destroys");
  }
  
@@ -7577,6 +7883,108 @@ index 39c5ba3..6fe4511 100644
 +        "extended resource device destroys");
 +}
 +
++static void test_runtime_stage_distinct_push_constants(void)
++{
++    AgcDevice device = create_device();
++    AgcQueue queue = create_queue(device, kAgcQueueGraphics);
++    AgcShaderReflection vs_reflection = AGC_SHADER_REFLECTION_INIT;
++    AgcShaderReflection ps_reflection = AGC_SHADER_REFLECTION_INIT;
++    const AgcShaderPushConstantRange push_range = {
++        0u, 4u, 4u,
++        (1u << kAgcShaderStageVs) | (1u << kAgcShaderStagePs)};
++    AgcGraphicsPipelineDesc pipeline_desc = AGC_GRAPHICS_PIPELINE_DESC_INIT;
++    AgcCommandBufferDesc command_desc = AGC_COMMAND_BUFFER_DESC_INIT;
++    AgcSubmitInfo submit = AGC_SUBMIT_INFO_INIT;
++    AgcGraphicsPipeline pipeline = NULL;
++    AgcCommandBuffer command = NULL;
++    AgcShader vs;
++    AgcShader ps;
++    const AgcCommandBufferSubmit *captured;
++    const uint32_t *words;
++    const uint32_t vs_value = UINT32_C(0x11223344);
++    const uint32_t ps_value = UINT32_C(0xaabbccdd);
++    uint32_t value = 0u;
++
++    vs_reflection.push_constant_size = 4u;
++    vs_reflection.push_constant_alignment = 4u;
++    vs_reflection.push_constant_range_count = 1u;
++    vs_reflection.push_constant_ranges[0] = push_range;
++    vs_reflection.inline_push_constant_mask = 1u;
++    vs_reflection.user_sgpr_count = 1u;
++    vs_reflection.user_sgprs[0] = (AgcShaderUserSgpr){
++        AGC_SHADER_USER_SGPR_INLINE_PUSH_CONSTANT, 0u,
++        AGC_REG_SPI_SHADER_USER_DATA_GS_0 + 7u, 1u};
++    ps_reflection.push_constant_size = 4u;
++    ps_reflection.push_constant_alignment = 4u;
++    ps_reflection.push_constant_range_count = 1u;
++    ps_reflection.push_constant_ranges[0] = push_range;
++    ps_reflection.inline_push_constant_mask = 1u;
++    ps_reflection.user_sgpr_count = 1u;
++    ps_reflection.user_sgprs[0] = (AgcShaderUserSgpr){
++        AGC_SHADER_USER_SGPR_INLINE_PUSH_CONSTANT, 0u,
++        AGC_REG_SPI_SHADER_USER_DATA_PS_0 + 7u, 1u};
++    vs = create_shader_with_reflection(
++        device, kAgcShaderStageVs, &vs_reflection);
++    ps = create_shader_with_reflection(
++        device, kAgcShaderStagePs, &ps_reflection);
++    pipeline_desc.vertex_shader = vs;
++    pipeline_desc.pixel_shader = ps;
++    pipeline_desc.push_constant_ranges = &push_range;
++    pipeline_desc.push_constant_range_count = 1u;
++    TEST_ASSERT_EQ(agcCreateGraphicsPipeline(device, &pipeline_desc,
++        &pipeline), AGC_OK,
++        "stage-distinct push-constant pipeline creates");
++    TEST_ASSERT_EQ(agcCreateCommandBuffer(device, &command_desc, &command),
++        AGC_OK, "stage-distinct push-constant command buffer creates");
++    TEST_ASSERT_EQ(agcBeginCommandBuffer(command), AGC_OK,
++        "stage-distinct push-constant command buffer begins");
++    TEST_ASSERT_EQ(agcCmdBindGraphicsPipeline(command, pipeline), AGC_OK,
++        "stage-distinct push-constant pipeline binds");
++    TEST_ASSERT_EQ(agcCmdPushConstants(command, 1u << kAgcShaderStageVs,
++        0u, sizeof(vs_value), &vs_value), AGC_OK,
++        "vertex push-constant value binds independently");
++    TEST_ASSERT_EQ(agcCmdPushConstants(command, 1u << kAgcShaderStagePs,
++        0u, sizeof(ps_value), &ps_value), AGC_OK,
++        "pixel push-constant value binds independently");
++    TEST_ASSERT_EQ(agcCmdDraw(command, 3u, 1u, 0u, 0u), AGC_OK,
++        "stage-distinct push-constant draw records");
++    TEST_ASSERT_EQ(agcEndCommandBuffer(command), AGC_OK,
++        "stage-distinct push-constant command buffer ends");
++    submit.command_buffer_count = 1u;
++    submit.command_buffers = &command;
++    TEST_ASSERT_EQ(agcQueueSubmit(queue, &submit, NULL), AGC_OK,
++        "stage-distinct push-constant command buffer submits");
++    captured = agcDriverDebugLastDcbSubmit();
++    TEST_ASSERT(captured != NULL,
++        "stage-distinct push-constant submission is captured");
++    words = (const uint32_t *)(uintptr_t)captured->command_address;
++    TEST_ASSERT(runtime_find_shader_register(words, captured->dword_count,
++        AGC_REG_SPI_SHADER_USER_DATA_GS_0 + 7u, &value),
++        "vertex inline push constant is emitted");
++    TEST_ASSERT_EQ(value, vs_value,
++        "vertex inline push constant retains its stage-local value");
++    TEST_ASSERT(runtime_find_shader_register(words, captured->dword_count,
++        AGC_REG_SPI_SHADER_USER_DATA_PS_0 + 7u, &value),
++        "pixel inline push constant is emitted");
++    TEST_ASSERT_EQ(value, ps_value,
++        "pixel inline push constant retains its stage-local value");
++
++    TEST_ASSERT_EQ(agcResetCommandBuffer(command), AGC_OK,
++        "stage-distinct push-constant command buffer resets");
++    TEST_ASSERT_EQ(agcDestroyCommandBuffer(command), AGC_OK,
++        "stage-distinct push-constant command buffer destroys");
++    TEST_ASSERT_EQ(agcDestroyGraphicsPipeline(pipeline), AGC_OK,
++        "stage-distinct push-constant pipeline destroys");
++    TEST_ASSERT_EQ(agcDestroyShader(ps), AGC_OK,
++        "stage-distinct pixel shader destroys");
++    TEST_ASSERT_EQ(agcDestroyShader(vs), AGC_OK,
++        "stage-distinct vertex shader destroys");
++    TEST_ASSERT_EQ(agcDestroyQueue(queue), AGC_OK,
++        "stage-distinct push-constant queue destroys");
++    TEST_ASSERT_EQ(agcDestroyDevice(device), AGC_OK,
++        "stage-distinct push-constant device destroys");
++}
++
 +static void test_runtime_occlusion_query_commands(void)
 +{
 +    AgcDevice device = create_device();
@@ -7712,7 +8120,7 @@ index 39c5ba3..6fe4511 100644
      TEST_RUN(test_runtime_geometry_pipeline_bundle);
      TEST_RUN(test_runtime_tessellation_pipeline_bundles);
      TEST_RUN(test_runtime_allocation_callbacks);
-@@ -8558,6 +9596,7 @@ void test_suite_runtime(void)
+@@ -8558,6 +9726,7 @@ void test_suite_runtime(void)
      TEST_RUN(test_runtime_all_object_lifecycle);
      TEST_RUN(test_runtime_fence_and_command_states);
      TEST_RUN(test_runtime_compute_submission);
@@ -7720,7 +8128,7 @@ index 39c5ba3..6fe4511 100644
      TEST_RUN(test_runtime_empty_submission_eop_diagnostic);
      TEST_RUN(test_runtime_compiler_reflection_sidecar);
      TEST_RUN(test_runtime_compiler_graphics_sidecar);
-@@ -8569,7 +9608,8 @@ void test_suite_runtime(void)
+@@ -8569,7 +9738,8 @@ void test_suite_runtime(void)
      TEST_RUN(test_runtime_copy_buffer_submission);
      TEST_RUN(test_runtime_buffer_range_fragmentation);
      TEST_RUN(test_runtime_image_subresource_states);
@@ -7730,12 +8138,13 @@ index 39c5ba3..6fe4511 100644
      TEST_RUN(test_runtime_compute_copy_shader_batch);
      TEST_RUN(test_runtime_gpu_labels);
      TEST_RUN(test_runtime_gpu_label_timeline_waits);
-@@ -8588,6 +9628,9 @@ void test_suite_runtime(void)
+@@ -8588,6 +9758,10 @@ void test_suite_runtime(void)
      TEST_RUN(test_runtime_ps5_image_layouts);
      TEST_RUN(test_runtime_all_backing_categories);
      TEST_RUN(test_runtime_heap_staging_and_stats);
 +    TEST_RUN(test_runtime_explicit_placed_memory);
 +    TEST_RUN(test_runtime_extended_image_view_and_sampler);
++    TEST_RUN(test_runtime_stage_distinct_push_constants);
 +    TEST_RUN(test_runtime_occlusion_query_commands);
      TEST_RUN(test_runtime_fence_deferred_free);
      TEST_RUN(test_runtime_batch_deferred_retirement_stress);

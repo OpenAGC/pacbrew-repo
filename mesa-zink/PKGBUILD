@@ -1,5 +1,5 @@
 pkgname=ps5-payload-mesa-zink
-pkgver=26.3.0_devel.r20260801.g0dddc56
+pkgver=26.3.0_devel.r20260801.gffaa6a7
 pkgrel=1
 pkgdesc='Pinned Mesa EGL and Zink runtime for Vulkan-PS5'
 arch=('any')
@@ -13,7 +13,7 @@ source=("mesa-${_commit}.tar.gz::https://gitlab.freedesktop.org/mesa/mesa/-/arch
 	'prospero-zink.patch'
 	'ps5-mesa-cross.ini')
 sha256sums=('256ed333fc8ab64c6778e7c333061163633e873759abb2136c4a7a363b6decc8'
-	'e3a0034f2c85635233ac69136a2a8a51cad3d3ebb2797eba38fa98157299ad0e'
+	'7f39685267676399a1a8a15d402fe2076b16032277bf97fcd73ec7ba8f814641'
 	'240907b9debbdb61f17941e0ec7d6bc33de67bf02a5ef5ec221a5132dd9f5069')
 
 groups=('ps5-payload-dev' 'ps5-payload-gl')

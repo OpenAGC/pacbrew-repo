@@ -1,5 +1,5 @@
 pkgname=ps5-payload-openagc
-pkgver=0.2.0.r20260801.gffd470d
+pkgver=0.2.0.r20260801.ga1b1f31
 pkgrel=1
 pkgdesc='Open AGC graphics and VideoOut library for PS5 payloads'
 arch=('any')
@@ -11,7 +11,7 @@ _commit=af2c56975bc1e4b29fb1637a6690c1ffe1c5e945
 source=("OpenAGC-${_commit}.tar.gz::https://github.com/OpenAGC/OpenAGC/archive/${_commit}.tar.gz"
 	'native-runtime-migration.patch')
 sha256sums=('c932ca4476f10ff62e45f35966abf5431ff5f24e20481696ac3ff407eac86e53'
-	'de7c3cc5b73c3351ec49fc4c8e8c05f0cd4f661693089f971d9e6fe2ce7b3277')
+	'0ebb39308fbd9b2c7326e9bfb733ad641640a2caae9ce72766b74112659d9460')
 
 groups=('ps5-payload-dev')
 makedepends=('ps5-payload-sdk')
