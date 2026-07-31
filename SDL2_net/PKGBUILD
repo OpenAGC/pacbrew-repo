@@ -1,13 +1,14 @@
 pkgname=ps5-payload-sdl2_net
-pkgver=2.2.0
+pkgver=2.5.0.r20260801.gb1085ee
 pkgrel=1
 pkgdesc="A small sample cross-platform networking library (Version 2)"
 arch=('any')
 url="https://github.com/libsdl-org/SDL_net"
 license=('MIT')
 options=(!strip libtool staticlibs)
-source=("https://github.com/libsdl-org/SDL_net/releases/download/release-${pkgver}/SDL2_net-${pkgver}.tar.gz")
-sha256sums=('4e4a891988316271974ff4e9585ed1ef729a123d22c08bd473129179dc857feb')
+_commit=b1085eed744eab0c894a5306d822c9241bcf0228
+source=("SDL_net-${_commit}.tar.gz::${url}/archive/${_commit}.tar.gz")
+sha256sums=('f5552a5030211463ebfa51e32650e9792de770d6d48fe8aaa0c07679667165af')
 groups=('ps5-payload-dev')
 makedepends=('ps5-payload-sdk')
 depends=('ps5-payload-sdl2')
@@ -17,23 +18,23 @@ prepare() {
 	export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
     fi
 
-    cd SDL2_net-$pkgver
-    sed -i 's|= gethostbyaddr|= NULL; //|g' SDLnet.c
+    cd "SDL_net-${_commit}"
+    sed -i 's|= gethostbyaddr|= NULL; //|g' src/SDLnet.c
 }
 
 build() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
     export SDL2_CONFIG="${PS5_PAYLOAD_SDK}/bin/prospero-sdl2-config"
-    cd SDL2_net-$pkgver
+    cd "SDL_net-${_commit}"
 
     ./configure --prefix="${PREFIX}" --host=x86_64-pc-freebsd \
-		--enable-static --disable-shared
+		--enable-static --disable-shared --disable-examples
     ${MAKE}
 }
 
 package() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
-    cd SDL2_net-$pkgver
+    cd "SDL_net-${_commit}"
 
     export DESTDIR="${pkgdir}/${DESTDIR}"
     ${MAKE} install

@@ -1,12 +1,15 @@
 pkgname=ps5-payload-sdl2_gfx
-pkgver=1.0.4
+pkgver=1.0.4.r20260801.gc4aca6b
 pkgrel=1
 pkgdesc="SDL graphics drawing primitives and other support functions (Version 2)"
-url="http://www.ferzkopp.net/wordpress/2016/01/02/sdl_gfx-sdl2_gfx/"
+url="https://github.com/ferzkopp/SDL2_gfx"
 arch=('any')
 license=(zlib)
-source=("https://www.ferzkopp.net/Software/SDL2_gfx/SDL2_gfx-${pkgver}.tar.gz")
-sha256sums=('63e0e01addedc9df2f85b93a248f06e8a04affa014a835c2ea34bfe34e576262')
+_commit=c4aca6b9700ec0db0abd316809e7e6038c511ce2
+source=("SDL2_gfx-${_commit}.tar.gz::${url}/archive/${_commit}.tar.gz"
+	'CMakeLists.txt')
+sha256sums=('358042f1e63ba1ef4d6484047998ab08c1ee72ab589826805bfbba8fd50abe8b'
+	'e2ef5c6549dea3fd821f0c2802ed2f248f68c3225c7e71c87facf3ec010e8b94')
 options=(!strip libtool staticlibs)
 makedepends=('ps5-payload-sdk')
 depends=('ps5-payload-sdl2')
@@ -17,30 +20,27 @@ prepare() {
 	export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
     fi
 
-    source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
-    cd SDL2_gfx-$pkgver
-
-    rm config.guess
-    mv acinclude/sdl2.m4 .
-    autoreconf -vi -I.
+    install -Dm644 "${srcdir}/CMakeLists.txt" \
+	"${srcdir}/SDL2_gfx-${_commit}/CMakeLists.txt"
 }
 
 build() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
-    export SDL2_CONFIG="${PS5_PAYLOAD_SDK}/bin/prospero-sdl2-config"
-    cd SDL2_gfx-$pkgver
+    cd "SDL2_gfx-${_commit}"
 
-    ./configure --prefix="${PREFIX}" --host=x86_64-pc-freebsd \
-		--enable-static --disable-shared
-    ${MAKE}
+    ${CMAKE} -S . -B build \
+	-DCMAKE_BUILD_TYPE=Release \
+	-DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+	-DSDL2_INCLUDE_DIR="${PS5_SYSROOT}${PREFIX}/include/SDL2"
+    ${MAKE} -C build
 }
 
 package() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
-    cd SDL2_gfx-$pkgver
+    cd "SDL2_gfx-${_commit}"
 
     export DESTDIR="${pkgdir}/${DESTDIR}"
-    ${MAKE} install
+    ${MAKE} -C build install
 
     ${PS5_CROSS_FIX_ROOT} "${DESTDIR}/${PREFIX}"
 }

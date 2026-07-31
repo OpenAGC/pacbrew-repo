@@ -1,13 +1,14 @@
 pkgname=ps5-payload-sdl2_ttf
-pkgver=2.22.0
+pkgver=2.25.0.r20260801.gd67ca21
 pkgrel=1
 pkgdesc="SDL2 TrueType font library."
 arch=('any')
-url="https://libsdl.org/projects/SDL_ttf"
+url="https://github.com/libsdl-org/SDL_ttf"
 license=("zlib")
 options=(!strip libtool staticlibs)
-source=("${url}/release/SDL2_ttf-${pkgver}.tar.gz")
-sha256sums=('d48cbd1ce475b9e178206bf3b72d56b66d84d44f64ac05803328396234d67723')
+_commit=d67ca21c8e0701f3c7bab3cca14f1d1a6daa235d
+source=("SDL_ttf-${_commit}.tar.gz::${url}/archive/${_commit}.tar.gz")
+sha256sums=('642a6a61fd8f9e55ebdedaac976fc98a49ca6ba2c439c7f292fd73fe6f8b2f1b')
 groups=('ps5-payload-dev')
 makedepends=('ps5-payload-sdk' 'ps5-payload-openlibm')
 depends=('ps5-payload-sdl2' 'ps5-payload-freetype' 'ps5-payload-harfbuzz')
@@ -21,7 +22,7 @@ prepare() {
 build() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
     export SDL2_CONFIG="${PS5_PAYLOAD_SDK}/bin/prospero-sdl2-config"
-    cd SDL2_ttf-$pkgver
+    cd "SDL_ttf-${_commit}"
 
     # harfbuzz is currently crashing when used with SDL2_ttf
     ./configure --prefix="${PREFIX}" --host=x86_64-pc-freebsd \
@@ -34,7 +35,7 @@ build() {
 
 package() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
-    cd SDL2_ttf-$pkgver
+    cd "SDL_ttf-${_commit}"
 
     export DESTDIR="${pkgdir}/${DESTDIR}"
     make install

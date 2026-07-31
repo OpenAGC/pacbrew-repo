@@ -1,13 +1,14 @@
 pkgname=ps5-payload-sdl2_mixer
-pkgver=2.8.0
+pkgver=2.9.0.r20260801.g93c41dc
 pkgrel=1
 pkgdesc="A sample multi-channel audio mixer library."
 arch=('any')
 url="https://github.com/libsdl-org/SDL_mixer"
 license=("zlib")
 options=(!strip libtool staticlibs)
-source=("${url}/releases/download/release-${pkgver}/SDL2_mixer-${pkgver}.tar.gz")
-sha256sums=('SKIP')
+_commit=93c41dc52afcc3b9753b146ca8524de958107590
+source=("SDL_mixer-${_commit}.tar.gz::${url}/archive/${_commit}.tar.gz")
+sha256sums=('54d516033e7ee7100f08b96de66c296f12720d0d46a70c30fbd8892acffcd099')
 groups=('ps5-payload-dev' 'ps5-payload-sdl2')
 depends=('ps5-payload-sdl2')
 makedepends=('ps5-payload-sdk')
@@ -21,7 +22,7 @@ prepare() {
 build() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
     export SDL2_CONFIG="${PS5_PAYLOAD_SDK}/bin/prospero-sdl2-config"
-    cd SDL2_mixer-$pkgver
+    cd "SDL_mixer-${_commit}"
 
     ./configure --prefix="${PREFIX}" --host=x86_64-pc-freebsd \
 		--enable-static --disable-shared
@@ -30,7 +31,7 @@ build() {
 
 package() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
-    cd SDL2_mixer-$pkgver
+    cd "SDL_mixer-${_commit}"
 
     export DESTDIR="${pkgdir}/${DESTDIR}"
     make install

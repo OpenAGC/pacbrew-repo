@@ -102,6 +102,12 @@ installed SDL2 CMake package explicitly. The Autotools consumers `love`,
 `mednafen`, and `scummvm` use the Prospero wrapper, while `ffmpeg` now enables
 its SDL2 integration and declares SDL2 as a runtime dependency.
 
+The six `SDL2_*` recipes are pinned to the latest commit of their SDL2,
+main, or master maintenance branch as appropriate, with immutable archive
+checksums. SDL2_gfx's latest commit no longer carries an Autotools build, so
+its recipe supplies a minimal checked CMake build for the four upstream source
+files and installs the same public headers and static `libSDL2_gfx.a` surface.
+
 LakeSnes, offact, FBNeo, and EDuke32 already select
 `prospero-sdl2-config` in their upstream PS5 build files, so installing this
 repository's `ps5-payload-sdl2` package routes them to the same OpenAGC-enabled

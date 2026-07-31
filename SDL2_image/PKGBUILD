@@ -1,13 +1,14 @@
 pkgname=ps5-payload-sdl2_image
-pkgver=2.8.2
+pkgver=2.9.0.r20260801.gc8c05a7
 pkgrel=1
 pkgdesc='SDL2 image loading library.'
 arch=('any')
-url='https://libsdl.org/projects/SDL_image'
+url='https://github.com/libsdl-org/SDL_image'
 license=('zlib')
 options=(!strip libtool staticlibs)
-source=("https://github.com/libsdl-org/SDL_image/releases/download/release-${pkgver}/SDL2_image-${pkgver}.tar.gz")
-sha256sums=('8f486bbfbcf8464dd58c9e5d93394ab0255ce68b51c5a966a918244820a76ddc')
+_commit=c8c05a7647f07b9f6b4dac601905cb6c43fb38b8
+source=("SDL_image-${_commit}.tar.gz::${url}/archive/${_commit}.tar.gz")
+sha256sums=('ef20db9a618919851d29c8729e19eec899502e35410ebc1c0ea9ace10dbb7d71')
 groups=('ps5-payload-dev')
 makedepends=('ps5-payload-sdk' 'ps5-payload-openlibm')
 depends=('ps5-payload-sdl2'
@@ -24,7 +25,7 @@ prepare() {
 build() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
     export SDL2_CONFIG="${PS5_PAYLOAD_SDK}/bin/prospero-sdl2-config"
-    cd SDL2_image-$pkgver
+    cd "SDL_image-${_commit}"
 
     ./configure --prefix="${PREFIX}" --host=x86_64-pc-freebsd \
 		--enable-static --disable-shared
@@ -33,7 +34,7 @@ build() {
 
 package() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
-    cd SDL2_image-$pkgver
+    cd "SDL_image-${_commit}"
 
     export DESTDIR="${pkgdir}/${DESTDIR}"
     ${MAKE} install
