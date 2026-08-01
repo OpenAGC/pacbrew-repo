@@ -17,7 +17,7 @@ examples, and bundled PSBC packaging disabled. The dedicated
 installs its public header before Vulkan-PS5 is configured.
 
 The effective 2026-08-01 candidate revisions are OpenAGC `90e93f0`,
-openagc-psbc `8d36ecc`, Vulkan-PS5 `e62f5bb`, Mesa-Zink `ba27d45`, and SDL2
+openagc-psbc `8d36ecc`, Vulkan-PS5 `3b4da53`, Mesa-Zink `ba27d45`, and SDL2
 `e090904`. Each recipe reconstructs that revision from a reachable immutable
 archive plus the SHA-256-checked patch in its package directory. These are
 host-, sanitizer-, package-relocation-, Prospero-build-, and FW 5.500.008-

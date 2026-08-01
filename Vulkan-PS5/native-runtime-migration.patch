@@ -881,10 +881,10 @@ index ede0806..5659290 100644
  availability, partial results, and bounded waits. Repeated FW 5.50 runs matched
  the exact 18,432-sample result to independent mapped color coverage, so
 diff --git a/STATUS.md b/STATUS.md
-index e52bfb5..1ee357a 100644
+index e52bfb5..5256dfa 100644
 --- a/STATUS.md
 +++ b/STATUS.md
-@@ -1,5 +1,388 @@
+@@ -1,5 +1,390 @@
  # Implementation Status
  
 +## Current architecture status (2026-07-31)
@@ -1256,9 +1256,11 @@ index e52bfb5..1ee357a 100644
 +dependency order. A generic regression proves that deferred native count
 +returns to zero after pool reset.
 +
-+The diagnostic-free final candidate passes all 46 generic tests and the
-+Prospero shared-ICD verifier (`204` exports; only `RELATIVE`, `GLOB_DAT`, and
-+`JUMP_SLOT` relocations). Two consecutive cleanup-guarded FW 5.500.008 runs at
++The diagnostic-free final candidate passes all 46 generic tests and all 46
++ASan/UBSan tests, including the strict zero-gap Zink profile and package
++relocation gate. The Prospero shared-ICD verifier reports `204` exports and
++only `RELATIVE`, `GLOB_DAT`, and `JUMP_SLOT` relocations. Two consecutive
++cleanup-guarded FW 5.500.008 runs at
 +`20260801T032341Z` and `20260801T032359Z` returned renderer `zink Vulkan 1.2`,
 +exact RGBA `64,128,191,255`, visible presentation, no native lifetime error,
 +normal self-exit, and immediate relaunch without reboot. Final tested hashes:
@@ -1273,7 +1275,7 @@ index e52bfb5..1ee357a 100644
  ## Milestone 6: multiple viewports (2026-07-29)
  
  `multiViewport` is advertised and accepted through legacy and Features2
-@@ -779,24 +1162,25 @@ Implemented and verified:
+@@ -779,24 +1164,25 @@ Implemented and verified:
    complete host suite passes 11/11.
  - The Prospero relocation run passes using the relocated
    `VulkanPS5::ICD` target. Its link audit proves the three relocated archives
