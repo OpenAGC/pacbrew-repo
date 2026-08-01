@@ -23,7 +23,10 @@ archive plus the SHA-256-checked patch in its package directory. These are
 host-, sanitizer-, package-relocation-, Prospero-build-, FW 5.500.008-, and FW
 11.600.005-qualified candidates. SDL is also published on the OpenAGC
 `release-2.30.x-ps5` branch, which the SDL2 recipe uses as its immutable source
-repository. The SDL2 extension recipes separately pin the current upstream
+repository. The Mesa fork is published at `OpenAGC/mesa`; the Mesa-Zink recipe
+uses immutable archives from that GitHub repository while retaining
+freedesktop GitLab as the fork's upstream development remote. The SDL2
+extension recipes separately pin the current upstream
 SDL2 maintenance revisions listed in their `PKGBUILD` files; they must not
 follow the incompatible SDL3 default branches.
 
