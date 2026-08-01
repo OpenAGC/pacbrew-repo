@@ -1,13 +1,13 @@
 pkgname=ps5-payload-sdl2_kitchensink
-pkgver=2.0.0.r20260801.g1d3a88f
+pkgver=2.0.0.r20260801.gb01841c
 pkgrel=1
 pkgdesc="FFmpeg and SDL2 based library for audio and video playback, written in C99."
 arch=('any')
 url="https://katajakasa.github.io/SDL_kitchensink/"
 license=('MIT')
-_commit=1d3a88f484f30a935d8ce635a926d805a0963b29
+_commit=b01841c7805da91376ac7ded2f737c6347bb98a2
 source=("SDL_kitchensink-${_commit}.tar.gz::https://github.com/katajakasa/SDL_kitchensink/archive/${_commit}.tar.gz")
-sha256sums=('17c52996426d5d95d7c8cab71a133da7a5ab69a3d86eeaa39f5889c44088ec5f')
+sha256sums=('90bdb0a293e70dc0c6e75e182bcf3719c8b3a3fe058ce667ff8c58ef2346f74a')
 
 options=(!strip libtool staticlibs)
 groups=('ps5-payload-dev')

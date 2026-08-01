@@ -1,5 +1,5 @@
 pkgname=ps5-payload-mesa-zink
-pkgver=26.3.0_devel.r20260801.gba27d45
+pkgver=26.3.0_devel.r20260801.g6dbc12f
 pkgrel=1
 pkgdesc='Pinned Mesa EGL and Zink runtime for Vulkan-PS5'
 arch=('any')
@@ -7,14 +7,14 @@ url='https://gitlab.freedesktop.org/mesa/mesa'
 license=('MIT AND BSD-3-Clause AND SGI-B-2.0')
 options=(!strip libtool)
 
-_commit=ba27d457971d7621f239b0e0a76b98f59ce533b0
+_commit=6dbc12f7a36efedd0e307786b6c727fd36b84a48
 _base_commit=44e18d3d7783c751fd77aeba01bbff28db97945a
 _mesa_libver=26.3.0-devel
 source=("mesa-${_base_commit}.tar.gz::https://gitlab.freedesktop.org/mesa/mesa/-/archive/${_base_commit}/mesa-${_base_commit}.tar.gz"
 	'prospero-zink.patch'
 	'ps5-mesa-cross.ini')
 sha256sums=('256ed333fc8ab64c6778e7c333061163633e873759abb2136c4a7a363b6decc8'
-	'51c8547b6d46a7d30f66b448657f8c467d782d20e99eae5d36253a81d784926b'
+	'5f05476e8b470eb1297271c98ae13c6e98c8662f30b00f31c73937b925abfcbb'
 	'240907b9debbdb61f17941e0ec7d6bc33de67bf02a5ef5ec221a5132dd9f5069')
 
 groups=('ps5-payload-dev' 'ps5-payload-gl')

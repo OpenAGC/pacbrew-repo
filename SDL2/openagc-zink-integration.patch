@@ -222,10 +222,10 @@ index c24f1365e..7fa7ed407 100755
  ${MAKE} -C build-ps5
 diff --git a/docs/README-ps5-openagc.md b/docs/README-ps5-openagc.md
 new file mode 100644
-index 000000000..d6e45de24
+index 000000000..6a6c13810
 --- /dev/null
 +++ b/docs/README-ps5-openagc.md
-@@ -0,0 +1,592 @@
+@@ -0,0 +1,597 @@
 +# PS5 SDL2 OpenAGC acceleration
 +
 +## Goal
@@ -361,20 +361,25 @@ index 000000000..d6e45de24
 +   VideoOut, synchronization, and the OpenAGC present chain. Select it
 +   explicitly with `SDL_HINT_PS5_OPENGL_DRIVER=zink`; missing or malformed
 +   selection fails closed.
-+6. The native-window bridge is FW 5.500.008-qualified. Two immediate guarded
-+   runs (`20260801T032341Z` and `20260801T032359Z`) created the real Zink EGL
-+   context, returned exact RGBA `64,128,191,255`, presented, released every
-+   OpenAGC child, self-exited, and relaunched without reboot. The Vulkan-PS5
-+   generic suite passes 46/46 and its shared-ICD verifier reports 204 exports
-+   with only supported dynamic relocations. The tested hashes are:
++6. The native-window bridge is qualified on FW 5.500.008 and FW 11.600.005.
++   After removing Gallium's redundant Prospero `$ORIGIN` RUNPATH while
++   retaining the EGL loader's colocated-library RUNPATH, the exact candidate
++   passed three consecutive FW 11.60 runs (`20260801T060248Z`,
++   `20260801T060313Z`, `20260801T060341Z`) and two immediate FW 5.50 replays
++   (`20260801T060410Z`, `20260801T060435Z`). Every run created the real Zink
++   EGL context, returned exact RGBA `64,128,191,255`, visibly presented,
++   released every OpenAGC child, self-exited, and relaunched without reboot.
++   Raw klog on port 3232 attributed clean teardown to each exact PID. The
++   Vulkan-PS5 generic and ASan/UBSan suites pass 47/47 and its shared-ICD
++   verifier reports 204 exports with only supported dynamic relocations. The
++   identical tested hashes are:
 +
 +   - `testps5zink`: `95da10acf89da3e35865890874034b8bffef1c563417309a0e4bb98404540ad9`
-+   - `libvulkan_ps5.so`: `f2f2a176d0dc4dcb14942471af41d9fa6eebdeaba134084a52de280932b71f52`
++   - `libvulkan_ps5.so`: `eacc4cf3dd1c15983e9f78482d65b14250d073a161c0b02433087eaeb5b6d271`
 +   - `libEGL.so.1.0.0`: `0d2922b30b3dbbe25f060331043bb4a4732272d0813023568381306528913fc1`
-+   - `libgallium-26.3.0-devel.so`: `9da905ef314e3362631406b1d85e013071b7fc80661cb663c7c40920d23eef85`
++   - `libgallium-26.3.0-devel.so`: `75f3c3fcd229387557d4649af9eee293ac485feeaea1904e48649370565b6b5f`
 +
-+   OSMesa remains the conservative default and independent software fallback;
-+   FW 11.60 replay is deferred until that endpoint is available.
++   OSMesa remains the conservative default and independent software fallback.
 +7. Do not package `glonagc` until it uses Mesa Gallium interfaces and passes
 +   upstream hardware validation.
 +
@@ -4568,10 +4573,10 @@ index 6388f9c0f..dee90bc49 100644
  if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
 diff --git a/test/run_ps5agc_display_probe.sh b/test/run_ps5agc_display_probe.sh
 new file mode 100755
-index 000000000..706a0a1b5
+index 000000000..9084ba55f
 --- /dev/null
 +++ b/test/run_ps5agc_display_probe.sh
-@@ -0,0 +1,590 @@
+@@ -0,0 +1,614 @@
 +#!/bin/sh
 +set -eu
 +
@@ -4625,6 +4630,7 @@ index 000000000..706a0a1b5
 +skip_build=${SDL_PS5AGC_SKIP_BUILD:-0}
 +build_jobs=${SDL_PS5AGC_BUILD_JOBS:-4}
 +klog_port=${SDL_PS5AGC_KLOG_PORT:-3232}
++allow_no_klog=${SDL_PS5AGC_ALLOW_NO_KLOG:-0}
 +pyps4debug_dir=${PYPS4DEBUG_DIR:-/Users/bizkut/Downloads/PS5/homebrew/PyPS4debug}
 +killer=${PS5DEBUG_KILLER:-$repo_dir/../Vulkan-PS5/examples/ps5debug_kill_process.py}
 +log_dir=${SDL_PS5AGC_LOG_DIR:-${TMPDIR:-/tmp}/sdl-ps5agc-qualification}
@@ -4758,6 +4764,10 @@ index 000000000..706a0a1b5
 +        echo "SDL_PS5AGC_SKIP_BUILD must be 0 or 1" >&2
 +        exit 2
 +        ;;
++esac
++case "$allow_no_klog" in
++    0|1) ;;
++    *) echo "SDL_PS5AGC_ALLOW_NO_KLOG must be 0 or 1" >&2; exit 2 ;;
 +esac
 +case "$build_jobs" in
 +    ''|*[!0-9]*|0*)
@@ -4980,31 +4990,41 @@ index 000000000..706a0a1b5
 +    echo "display probe launch failed with curl status $launch_status; log: $log" >&2
 +    exit 1
 +fi
-+if [ ! -s "$klog" ]; then
++have_klog=0
++target_pid=unavailable
++if [ -s "$klog" ]; then
++    have_klog=1
++    target_pid=$(latest_eboot_pid "$klog")
++    if [ -z "$target_pid" ]; then
++        if [ "$allow_no_klog" = 1 ]; then
++            have_klog=0
++            target_pid=unavailable
++        else
++            wait_eboot_absent || true
++            echo "klog did not identify the display probe PID: $klog" >&2
++            exit 1
++        fi
++    fi
++fi
++if [ "$have_klog" = 1 ]; then
++    target_exec_line=$(grep -n "^<${target_pid}> EXEC /app0/eboot\.bin " "$klog" |
++        tail -n 1 | cut -d: -f1)
++    sed -n "${target_exec_line},\$p" "$klog" >"$target_klog"
++    target_pid_hex=$(printf '%x' "$target_pid")
++    if grep -Eq \
++        "# proc ID: *${target_pid}$|mDBG: Sending signal\(pid: *${target_pid},|App Crash : PID=0x0*${target_pid_hex}([^0-9a-f]|$)|SYSTEM_XO_VIOLATION" \
++        "$target_klog" ||
++       grep -Eq '=== Reset GFX queue|#### GPU reset sequence starts' \
++        "$target_klog" ||
++       grep -Eq 'PowerManager\.RequestStateChange state:(Reboot|Shutdown)|Start SystemReboot|Start SystemShutdown' \
++        "$target_klog"; then
++        wait_eboot_absent || true
++        echo "display probe hit a fatal, GPU-reset, or system power event: $target_klog" >&2
++        exit 1
++    fi
++elif [ ! -s "$klog" ] && [ "$allow_no_klog" != 1 ]; then
 +    wait_eboot_absent || true
 +    echo "display probe completed but klog capture failed: $klog" >&2
-+    exit 1
-+fi
-+
-+target_pid=$(latest_eboot_pid "$klog")
-+if [ -z "$target_pid" ]; then
-+    wait_eboot_absent || true
-+    echo "klog did not identify the display probe PID: $klog" >&2
-+    exit 1
-+fi
-+target_exec_line=$(grep -n "^<${target_pid}> EXEC /app0/eboot\.bin " "$klog" |
-+    tail -n 1 | cut -d: -f1)
-+sed -n "${target_exec_line},\$p" "$klog" >"$target_klog"
-+target_pid_hex=$(printf '%x' "$target_pid")
-+if grep -Eq \
-+    "# proc ID: *${target_pid}$|mDBG: Sending signal\(pid: *${target_pid},|App Crash : PID=0x0*${target_pid_hex}([^0-9a-f]|$)|SYSTEM_XO_VIOLATION" \
-+    "$target_klog" ||
-+   grep -Eq '=== Reset GFX queue|#### GPU reset sequence starts' \
-+    "$target_klog" ||
-+   grep -Eq 'PowerManager\.RequestStateChange state:(Reboot|Shutdown)|Start SystemReboot|Start SystemShutdown' \
-+    "$target_klog"; then
-+    wait_eboot_absent || true
-+    echo "display probe hit a fatal, GPU-reset, or system power event: $target_klog" >&2
 +    exit 1
 +fi
 +
@@ -5108,29 +5128,34 @@ index 000000000..706a0a1b5
 +        exit 1
 +    fi
 +fi
-+self_kill_line=$(grep -n 'KillApp() appId=' "$target_klog" |
-+    tail -n 1 | cut -d: -f1 || true)
-+all_exited_line=$(grep -n '\[AppMgr\] All processes exited' "$target_klog" |
-+    tail -n 1 | cut -d: -f1 || true)
-+if [ -z "$self_kill_line" ] || [ -z "$all_exited_line" ] ||
-+   [ "$all_exited_line" -le "$self_kill_line" ]; then
-+    wait_eboot_absent || true
-+    echo "display probe lifecycle evidence is incomplete: $target_klog" >&2
-+    exit 1
-+fi
-+warning='[KERNEL] WARNING: VM resource leak: set:1, res:0, amount:0x4000'
-+warning_count=$(grep -Fxc "$warning" "$target_klog" || true)
-+if grep -F '[KERNEL] WARNING:' "$target_klog" | grep -Fvx "$warning" \
-+    >/dev/null || [ "$warning_count" -gt 1 ]; then
-+    wait_eboot_absent || true
-+    echo "display probe produced an unexpected kernel warning: $target_klog" >&2
-+    exit 1
++if [ "$have_klog" = 1 ]; then
++    self_kill_line=$(grep -n 'KillApp() appId=' "$target_klog" |
++        tail -n 1 | cut -d: -f1 || true)
++    all_exited_line=$(grep -n '\[AppMgr\] All processes exited' "$target_klog" |
++        tail -n 1 | cut -d: -f1 || true)
++    if [ -z "$self_kill_line" ] || [ -z "$all_exited_line" ] ||
++       [ "$all_exited_line" -le "$self_kill_line" ]; then
++        wait_eboot_absent || true
++        echo "display probe lifecycle evidence is incomplete: $target_klog" >&2
++        exit 1
++    fi
++    warning='[KERNEL] WARNING: VM resource leak: set:1, res:0, amount:0x4000'
++    warning_count=$(grep -Fxc "$warning" "$target_klog" || true)
++    if grep -F '[KERNEL] WARNING:' "$target_klog" | grep -Fvx "$warning" \
++        >/dev/null || [ "$warning_count" -gt 1 ]; then
++        wait_eboot_absent || true
++        echo "display probe produced an unexpected kernel warning: $target_klog" >&2
++        exit 1
++    fi
 +fi
 +wait_eboot_absent
 +if ! curl -sS --connect-timeout 3 --max-time 5 \
 +    "http://${PS5_HOST}:8080/" >/dev/null; then
 +    echo "display probe exited but WebSrv became unreachable" >&2
 +    exit 1
++fi
++if [ "$have_klog" = 0 ]; then
++    echo "ps5agc display probe: NO_KLOG_PROCESS_ABSENCE"
 +fi
 +
 +if [ "$expect_failure" -eq 1 ]; then
@@ -5161,7 +5186,11 @@ index 000000000..706a0a1b5
 +    fi
 +fi
 +echo "log: $log"
-+echo "klog: $target_klog"
++if [ "$have_klog" = 1 ]; then
++    echo "klog: $target_klog"
++else
++    echo "klog unavailable or unattributable: $klog"
++fi
 diff --git a/test/run_ps5agc_failure_matrix.sh b/test/run_ps5agc_failure_matrix.sh
 new file mode 100755
 index 000000000..82b948b2a

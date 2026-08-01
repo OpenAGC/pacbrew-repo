@@ -1,3 +1,25 @@
+diff --git a/docs/drivers/zink.rst b/docs/drivers/zink.rst
+index 60bf4f9f..27415df1 100644
+--- a/docs/drivers/zink.rst
++++ b/docs/drivers/zink.rst
+@@ -356,6 +356,17 @@ Set the build option ``-Dmoltenvk-dir=<directory>`` to point at your Vulkan SDK
+ Add Zink to the Gallium drivers build option ``-Dgallium-drivers=zink``.
+ If installed using ``brew``, you can set ``-D moltenvk-dir=$(brew --prefix molten-vk)``.
+ 
++Prospero packaging
++------------------
++
++The PS5/Prospero install keeps ``$ORIGIN`` on ``libEGL`` so that the EGL
++loader finds the colocated Gallium DRI target.  The Gallium DSO itself has no
++sibling DSO dependency and deliberately carries no duplicate install RUNPATH.
++FW 5.500.008 misexecuted the Zink workload when both DSOs had identical
++``$ORIGIN`` tags.  With only the EGL RUNPATH, the same staged libraries passed
++SDL/EGL/Zink pixel readback, presentation, teardown, and immediate relaunch on
++FW 5.500.008 and FW 11.600.005.
++
+ 
+ IRC
+ ---
 diff --git a/include/kopper_interface.h b/include/kopper_interface.h
 index 7e302771..f3f85f22 100644
 --- a/include/kopper_interface.h
@@ -493,18 +515,18 @@ index d987668e..7ec01d66 100644
  		ddebug_screen_create;
  		noop_screen_create;
 diff --git a/src/gallium/targets/dri/meson.build b/src/gallium/targets/dri/meson.build
-index c526ffef..fc2cfcb6 100644
+index c526ffef..e3e6724a 100644
 --- a/src/gallium/targets/dri/meson.build
 +++ b/src/gallium/targets/dri/meson.build
 @@ -12,6 +12,11 @@ gallium_dri_link_depends = []
  gallium_dri_drivers = []
  gallium_dri_link_with = []
  gallium_dri_link_whole = []
-+gallium_dri_install_rpath = []
-+
-+if host_machine.system() == 'prospero'
-+  gallium_dri_install_rpath = '$ORIGIN'
-+endif
++# libEGL carries $ORIGIN on Prospero so it can locate this DSO beside itself.
++# Gallium has no sibling DSO dependency of its own, and FW 5.50 misexecutes the
++# Zink workload when both libraries carry identical $ORIGIN RUNPATH tags.  Keep
++# Gallium's redundant install RUNPATH empty.
++gallium_dri_install_rpath = ''
  
  if with_gallium_va
    gallium_dri_link_with += [libgalliumvlwinsys]

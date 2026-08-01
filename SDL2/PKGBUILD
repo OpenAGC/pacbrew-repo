@@ -1,5 +1,5 @@
 pkgname=ps5-payload-sdl2
-pkgver=2.30.12.r20260801.ge090904
+pkgver=2.30.12.r20260801.g09ba4a9
 pkgrel=1
 pkgdesc='SDL2 with the OpenAGC-accelerated PS5 renderer'
 arch=('any')
@@ -7,12 +7,12 @@ url='https://github.com/OpenAGC/SDL'
 license=('Zlib')
 options=(!strip libtool staticlibs)
 
-_commit=e0909040eaddd28c45bd515fbe37ea8522fadc0f
+_commit=09ba4a9c544912cf9b5d17163def37593121cdc4
 _base_commit=0baf4ac49382b537ba449901b5b6d0d189bb1fbb
-source=("SDL-${_base_commit}.tar.gz::https://github.com/ps5-payload-dev/SDL/archive/${_base_commit}.tar.gz"
+source=("SDL-${_base_commit}.tar.gz::${url}/archive/${_base_commit}.tar.gz"
 	'openagc-zink-integration.patch')
 sha256sums=('cdcf926356a494d43369da2ba204fe7b4d746bc99b324a88656f0beac1cd8e57'
-	'5f3388f24bfa7d7b2b2031c142f24c90250941f6704090fa7077bf4972ab3c24')
+	'e614545585d3eebd3afe841ac4fa2a55e6c0470581d1da686e46aa13285f0c48')
 
 groups=('ps5-payload-dev' 'ps5-payload-sdl2')
 depends=('ps5-payload-libsamplerate' 'ps5-payload-openagc'

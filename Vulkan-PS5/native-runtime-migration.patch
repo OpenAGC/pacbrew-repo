@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index a68ed5f..4c2876f 100644
+index a68ed5f..ccc8cf3 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -77,7 +77,7 @@ target_include_directories(vulkan_ps5_objects
@@ -74,7 +74,20 @@ index a68ed5f..4c2876f 100644
    if(EXISTS "${VULKAN_MEMORY_ALLOCATOR_ROOT}/include/vk_mem_alloc.h")
      enable_language(CXX)
      add_executable(vulkan_ps5_eden_vma_test tests/eden_vma.cpp)
-@@ -257,7 +288,7 @@ if(VULKAN_PS5_BUILD_TESTS)
+@@ -189,6 +220,12 @@ if(VULKAN_PS5_BUILD_TESTS)
+       COMMAND sh "${CMAKE_CURRENT_SOURCE_DIR}/tests/depth_clamp_runner.sh"
+         "${CMAKE_CURRENT_SOURCE_DIR}")
+     set_tests_properties(vulkan_ps5.depth_clamp_runner PROPERTIES TIMEOUT 15)
++    add_test(NAME vulkan_ps5.depth_clip_enable_runner
++      COMMAND sh
++        "${CMAKE_CURRENT_SOURCE_DIR}/tests/depth_clip_enable_runner.sh"
++        "${CMAKE_CURRENT_SOURCE_DIR}")
++    set_tests_properties(vulkan_ps5.depth_clip_enable_runner PROPERTIES
++      TIMEOUT 15)
+     add_test(NAME vulkan_ps5.logic_op_runner
+       COMMAND sh "${CMAKE_CURRENT_SOURCE_DIR}/tests/logic_op_runner.sh"
+         "${CMAKE_CURRENT_SOURCE_DIR}")
+@@ -257,7 +294,7 @@ if(VULKAN_PS5_BUILD_TESTS)
      set(PIPELINE_SHADER_OUTPUTS)
      foreach(shader pipeline.vert pipeline.frag pipeline.comp pipeline.geom
                     pipeline.tesc pipeline.tese pipeline_sample.frag
@@ -83,7 +96,7 @@ index a68ed5f..4c2876f 100644
        set(output "${CMAKE_CURRENT_BINARY_DIR}/${shader}.spv")
        add_custom_command(OUTPUT "${output}"
          COMMAND "${GLSLANG_VALIDATOR}" -V
-@@ -353,6 +384,8 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+@@ -353,6 +390,8 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
      "${CMAKE_CURRENT_BINARY_DIR}/vulkan_ps5_storage_image_spv.h")
    set(VULKAN_PS5_ROBUST_BUFFER_HEADER
      "${CMAKE_CURRENT_BINARY_DIR}/vulkan_ps5_robust_buffer_spv.h")
@@ -92,7 +105,7 @@ index a68ed5f..4c2876f 100644
    set(VULKAN_PS5_VARIABLE_POINTERS_BINARY
      "${CMAKE_CURRENT_BINARY_DIR}/vulkan_ps5_variable_pointers.spv")
    set(VULKAN_PS5_VARIABLE_POINTERS_HEADER
-@@ -389,11 +422,25 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+@@ -389,11 +428,25 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
      examples/compute/main.c "${VULKAN_PS5_ROBUST_BUFFER_HEADER}")
    target_compile_definitions(vulkan_ps5_robust_buffer_probe PRIVATE
      VULKAN_PS5_ROBUST_BUFFER_PROBE=1)
@@ -118,7 +131,7 @@ index a68ed5f..4c2876f 100644
      add_test(NAME vulkan_ps5.robust_vertex_command_recording
        COMMAND vulkan_ps5_robust_vertex_probe)
    endif()
-@@ -423,6 +470,8 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+@@ -423,6 +476,8 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
      "${CMAKE_CURRENT_BINARY_DIR}/vulkan_ps5_triangle_vert_spv.h")
    set(VULKAN_PS5_TRIANGLE_FRAGMENT_HEADER
      "${CMAKE_CURRENT_BINARY_DIR}/vulkan_ps5_triangle_frag_spv.h")
@@ -127,7 +140,7 @@ index a68ed5f..4c2876f 100644
    set(VULKAN_PS5_ROBUST_VERTEX_HEADER
      "${CMAKE_CURRENT_BINARY_DIR}/vulkan_ps5_robust_vertex_spv.h")
    set(VULKAN_PS5_ROBUST_VERTEX_FRAGMENT_HEADER
-@@ -475,6 +524,13 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+@@ -475,6 +530,13 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
        -o "${VULKAN_PS5_TRIANGLE_FRAGMENT_HEADER}"
      DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/examples/triangle/triangle.frag"
      VERBATIM)
@@ -141,7 +154,7 @@ index a68ed5f..4c2876f 100644
    add_custom_command(OUTPUT "${VULKAN_PS5_ROBUST_VERTEX_HEADER}"
      COMMAND "${VULKAN_PS5_GLSLANG_VALIDATOR}" -V --target-env vulkan1.1
        --vn vulkan_ps5_robust_vertex_spv
-@@ -654,6 +710,24 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+@@ -654,6 +716,24 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
      "${VULKAN_PS5_NON_SOLID_FRAGMENT_HEADER}")
    target_compile_definitions(vulkan_ps5_wide_lines_probe PRIVATE
      VULKAN_PS5_WIDE_LINES_PROBE=1)
@@ -166,7 +179,20 @@ index a68ed5f..4c2876f 100644
    add_executable(vulkan_ps5_shader_demote_probe
      examples/triangle/main.c
      "${VULKAN_PS5_DEMOTE_VERTEX_HEADER}"
-@@ -802,6 +876,8 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+@@ -770,6 +850,12 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+     "${VULKAN_PS5_DEPTH_FRAGMENT_HEADER}")
+   target_compile_definitions(vulkan_ps5_depth_clamp_probe PRIVATE
+     VULKAN_PS5_DEPTH_CLAMP_PROBE=1)
++  add_executable(vulkan_ps5_depth_clip_enable_probe
++    examples/depth/main.c
++    "${VULKAN_PS5_DEPTH_CLAMP_VERTEX_HEADER}"
++    "${VULKAN_PS5_DEPTH_FRAGMENT_HEADER}")
++  target_compile_definitions(vulkan_ps5_depth_clip_enable_probe PRIVATE
++    VULKAN_PS5_DEPTH_CLIP_ENABLE_PROBE=1)
+   set(VULKAN_PS5_MRT_VERTEX_HEADER
+     "${CMAKE_CURRENT_BINARY_DIR}/vulkan_ps5_mrt_vert_spv.h")
+   set(VULKAN_PS5_MRT_FRAGMENT_HEADER
+@@ -802,6 +888,8 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
      "${CMAKE_CURRENT_BINARY_DIR}/vulkan_ps5_indexed_textured_vert_spv.h")
    set(VULKAN_PS5_INDEXED_TEXTURED_FRAGMENT_HEADER
      "${CMAKE_CURRENT_BINARY_DIR}/vulkan_ps5_indexed_textured_frag_spv.h")
@@ -175,7 +201,7 @@ index a68ed5f..4c2876f 100644
    set(VULKAN_PS5_IMAGE_GATHER_FRAGMENT_HEADER
      "${CMAKE_CURRENT_BINARY_DIR}/vulkan_ps5_image_gather_frag_spv.h")
    set(VULKAN_PS5_FRAGMENT_STORES_ATOMICS_HEADER
-@@ -834,6 +910,14 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+@@ -834,6 +922,14 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
      DEPENDS
        "${CMAKE_CURRENT_SOURCE_DIR}/examples/indexed_textured/indexed_textured.frag"
      VERBATIM)
@@ -190,7 +216,7 @@ index a68ed5f..4c2876f 100644
    add_custom_command(OUTPUT "${VULKAN_PS5_IMAGE_GATHER_FRAGMENT_HEADER}"
      COMMAND "${VULKAN_PS5_GLSLANG_VALIDATOR}" -V
        --vn vulkan_ps5_image_gather_frag_spv
-@@ -945,6 +1029,16 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+@@ -945,6 +1041,16 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
      "${VULKAN_PS5_INDEXED_TEXTURED_FRAGMENT_HEADER}")
    target_compile_definitions(vulkan_ps5_mirror_clamp_probe PRIVATE
      VULKAN_PS5_MIRROR_CLAMP_PROBE=1)
@@ -207,7 +233,7 @@ index a68ed5f..4c2876f 100644
    add_executable(vulkan_ps5_vertex_divisor_probe
      examples/indexed_textured/main.c
      "${VULKAN_PS5_INDEXED_TEXTURED_VERTEX_HEADER}"
-@@ -975,6 +1069,7 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+@@ -975,6 +1081,7 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
      set_target_properties(vulkan_ps5_compute_example
        vulkan_ps5_storage_image_probe
        vulkan_ps5_robust_buffer_probe
@@ -215,7 +241,7 @@ index a68ed5f..4c2876f 100644
        vulkan_ps5_variable_pointers_probe
        vulkan_ps5_robust_vertex_probe
        vulkan_ps5_triangle_example vulkan_ps5_geometry_example
-@@ -982,6 +1077,8 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+@@ -982,19 +1089,22 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
        vulkan_ps5_logic_op_probe vulkan_ps5_fill_mode_non_solid_probe
        vulkan_ps5_large_points_probe
        vulkan_ps5_wide_lines_probe
@@ -224,7 +250,14 @@ index a68ed5f..4c2876f 100644
        vulkan_ps5_shader_demote_probe
        vulkan_ps5_shader_clip_distance_probe
        vulkan_ps5_shader_cull_distance_probe
-@@ -995,6 +1092,7 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+       vulkan_ps5_tessellation_example
+       vulkan_ps5_vertex_pipeline_stores_atomics_probe
+       vulkan_ps5_depth_example vulkan_ps5_depth_bias_clamp_probe
+-      vulkan_ps5_depth_clamp_probe
++      vulkan_ps5_depth_clamp_probe vulkan_ps5_depth_clip_enable_probe
+       vulkan_ps5_swapchain_example
+       vulkan_ps5_mrt_example vulkan_ps5_independent_blend_probe
+       vulkan_ps5_query_example
        vulkan_ps5_query_lifecycle_probe vulkan_ps5_query_reset_probe
        vulkan_ps5_query_idle_probe
        vulkan_ps5_indexed_textured_example vulkan_ps5_mirror_clamp_probe
@@ -232,7 +265,7 @@ index a68ed5f..4c2876f 100644
        vulkan_ps5_shader_image_gather_probe
        vulkan_ps5_fragment_stores_atomics_probe
        vulkan_ps5_image_cube_array_probe
-@@ -1009,12 +1107,15 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+@@ -1009,12 +1119,15 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
    foreach(example_target IN ITEMS
        vulkan_ps5_compute_example vulkan_ps5_storage_image_probe
        vulkan_ps5_robust_buffer_probe
@@ -248,7 +281,15 @@ index a68ed5f..4c2876f 100644
        vulkan_ps5_shader_demote_probe
        vulkan_ps5_shader_clip_distance_probe
        vulkan_ps5_shader_cull_distance_probe
-@@ -1030,6 +1131,7 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+@@ -1023,13 +1136,14 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+       vulkan_ps5_tessellation_example
+       vulkan_ps5_vertex_pipeline_stores_atomics_probe
+       vulkan_ps5_depth_example vulkan_ps5_depth_bias_clamp_probe
+-      vulkan_ps5_depth_clamp_probe
++      vulkan_ps5_depth_clamp_probe vulkan_ps5_depth_clip_enable_probe
+       vulkan_ps5_mrt_example
+       vulkan_ps5_independent_blend_probe
+       vulkan_ps5_swapchain_example
        vulkan_ps5_query_example vulkan_ps5_query_lifecycle_probe
        vulkan_ps5_query_reset_probe vulkan_ps5_query_idle_probe
        vulkan_ps5_indexed_textured_example vulkan_ps5_mirror_clamp_probe
@@ -256,7 +297,7 @@ index a68ed5f..4c2876f 100644
        vulkan_ps5_shader_image_gather_probe
        vulkan_ps5_fragment_stores_atomics_probe
        vulkan_ps5_image_cube_array_probe
-@@ -1045,11 +1147,14 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+@@ -1045,11 +1159,14 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
        "${CMAKE_CURRENT_BINARY_DIR}")
      target_link_libraries(${example_target} PRIVATE vulkan_ps5_static)
    endforeach()
@@ -271,7 +312,16 @@ index a68ed5f..4c2876f 100644
      target_link_libraries(vulkan_ps5_variable_pointers_probe PRIVATE
        SceSystemService)
      target_link_libraries(vulkan_ps5_robust_vertex_probe PRIVATE
-@@ -1067,6 +1172,15 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+@@ -1059,6 +1176,8 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+       SceSystemService)
+     target_link_libraries(vulkan_ps5_depth_clamp_probe PRIVATE
+       SceSystemService)
++    target_link_libraries(vulkan_ps5_depth_clip_enable_probe PRIVATE
++      SceSystemService)
+     target_link_libraries(vulkan_ps5_logic_op_probe PRIVATE
+       SceSystemService)
+     target_link_libraries(vulkan_ps5_fill_mode_non_solid_probe PRIVATE
+@@ -1067,6 +1186,15 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
        SceSystemService)
      target_link_libraries(vulkan_ps5_wide_lines_probe PRIVATE
        SceSystemService)
@@ -287,7 +337,7 @@ index a68ed5f..4c2876f 100644
      target_link_libraries(vulkan_ps5_shader_demote_probe PRIVATE
        SceSystemService)
      target_link_libraries(vulkan_ps5_shader_clip_distance_probe PRIVATE
-@@ -1095,6 +1209,8 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
+@@ -1095,6 +1223,8 @@ if(VULKAN_PS5_BUILD_EXAMPLES)
        SceSystemService)
      target_link_libraries(vulkan_ps5_mirror_clamp_probe PRIVATE
        SceSystemService)
@@ -297,7 +347,7 @@ index a68ed5f..4c2876f 100644
        SceSystemService)
      target_link_libraries(vulkan_ps5_sampler_anisotropy_probe PRIVATE
 diff --git a/PLAN.md b/PLAN.md
-index 82612f7..829d30a 100644
+index 82612f7..28cbd55 100644
 --- a/PLAN.md
 +++ b/PLAN.md
 @@ -1,6 +1,242 @@
@@ -544,7 +594,7 @@ index 82612f7..829d30a 100644
  
  - Milestone 6 `multiViewport` closure is complete. The ICD exposes 16
    viewports, accepts static and dynamic viewport/scissor arrays, and emits
-@@ -257,20 +493,33 @@
+@@ -257,20 +493,47 @@
    a standard instance/device lifecycle. The harness rejects source-workspace
    paths in installed metadata and link commands. Host passes as part of the
    11/11 suite; the Prospero run proves relocated archive use plus transitive
@@ -582,13 +632,27 @@ index 82612f7..829d30a 100644
 +  maintenance5, and Vulkan 1.2 are implemented. FW 5.500.008 readback qualifies
 +  the scalar, alpha, dynamic-rendering, and swizzled-border slices, and the
 +  strict Mesa GL 2.1 report is zero-gap. The pinned Mesa now also passes the
-+  SDL native-window EGL/WSI bridge twice with exact readback, presentation,
-+  complete native teardown, and immediate relaunch. Preserve those hashes and
-+  defer the FW 11.60 replay until that endpoint is available.
++  SDL native-window EGL/WSI bridge with exact readback, presentation, complete
++  native teardown, and immediate relaunch. Mesa's Prospero package keeps the
++  EGL `$ORIGIN` RUNPATH and omits Gallium's redundant copy. Preserve the final
++  hashes replayed three times on FW 11.60 and twice on FW 5.50.
++  `VK_EXT_depth_clip_enable` is closed on FW 5.500.008 and FW 11.600.005.
++  Extension enumeration,
++  feature query/enablement, rasterization-chain parsing, fail-closed
++  validation, and translation through OpenAGC API 45 pass host tests. The
++  dedicated negative-Z probe passes twice with exact color, defined depth,
++  and stencil oracles; out-of-range unclamped depth is intentionally not
++  assigned a Vulkan-defined value. OpenAGC now includes gfx10.3 linear
++  attribute clipping in explicit clip-control packets. Two cleanup-guarded
++  Mesa/Zink runs pass exact pixels, visible presentation, teardown, immediate
++  relaunch, and contain no depth-clip warning. Preserve the pinned ELF/library
++  hashes. The identical firmware-neutral depth probe passes twice on each
++  endpoint. The same final Mesa/EGL/Zink library set passes both endpoints; do
++  not reintroduce a firmware-specific clip-control value.
    Milestone 6 now has an automated Eden suitability baseline derived from
    `../eden-ps5` revision `39763e7321`. Vulkan 1.1, all four explicit limits,
    the universal queue, swapchain, geometry, tessellation, and host query reset
-@@ -372,10 +621,17 @@
+@@ -372,10 +635,17 @@
  ## Summary
  
  - Build Vulkan-PS5 as a reusable Vulkan 1.1 implementation for arbitrary PS5 homebrew, libraries, engines, and ports.
@@ -609,7 +673,7 @@ index 82612f7..829d30a 100644
  
  ## Public Architecture and Interfaces
  
-@@ -393,9 +649,16 @@
+@@ -393,9 +663,16 @@
  ### OpenAGC and shader compiler
  
  - Add a reusable `libopenagc_psbc.a` API for host and Prospero. It accepts SPIR-V stages, entry points, specialization constants, vertex input, descriptor/pipeline layouts, and push constants; it returns AGC shader records, executable code, register state, resource-table mappings, and user-SGPR metadata.
@@ -629,7 +693,7 @@ index 82612f7..829d30a 100644
  
  ## Vulkan-PS5 Implementation
  
-@@ -409,12 +672,22 @@
+@@ -409,12 +686,22 @@
  
  ### Resources, commands, and synchronization
  
@@ -657,7 +721,7 @@ index 82612f7..829d30a 100644
  
  ### Extensions and WSI
  
-@@ -430,10 +703,18 @@
+@@ -430,10 +717,18 @@
    - Required Vulkan 1.1 maintenance/property dependencies
  - Treat a headless surface as the standard PS5 VideoOut surface, allowing any Vulkan application to create a swapchain without a platform-specific Vulkan header.
  - Back swapchains with VideoOut-compatible triple-buffered direct memory. Guarantee FIFO presentation and advertise other modes only after hardware validation.
@@ -680,10 +744,10 @@ index 82612f7..829d30a 100644
  1. Host ICD lifecycle, loader dispatch, physical-device properties, memory, and VVL-clean object tests.
  2. Runtime SPIR-V library for VS/PS/CS/GS/tessellation, descriptors, specialization constants, and push constants.
 diff --git a/README.md b/README.md
-index ede0806..5659290 100644
+index ede0806..285f24c 100644
 --- a/README.md
 +++ b/README.md
-@@ -1,11 +1,108 @@
+@@ -1,11 +1,115 @@
  # Vulkan-PS5
  
  Vulkan-PS5 is an application-neutral Vulkan ICD for PlayStation 5 homebrew. The
@@ -778,11 +842,17 @@ index ede0806..5659290 100644
 +rectangular line-rasterization contracts, dynamic rendering, custom border
 +colors with image-view swizzle, maintenance5, and Vulkan 1.2. Scalar block
 +layout is compiled by a real storage-buffer pipeline, and `alphaToOne` is baked
-+into the gfx1013 pixel epilog. The live strict report is now
++into the gfx1013 pixel epilog. `VK_EXT_depth_clip_enable` is also enumerated,
++feature-enabled, and translated to OpenAGC's explicit depth-clip state; its
++depth-sensitive probe passes twice with identical bytes and one gfx1013 clip
++sequence on both FW 5.50 and FW 11.60. The final SDL/EGL/Zink libraries also
++pass three consecutive FW 11.60 runs and two FW 5.50 replays with exact
++readback, presentation, teardown, and immediate relaunch.
++The live strict report is now
 +`api=0 extensions=0 features=0 total=0`, with FW 5.500.008 readback evidence
 +for scalar layout, alpha-to-one, dynamic rendering, and swizzled custom border
-+sampling. SDL must still retain OSMesa until pinned Mesa executes through the
-+PS5 EGL/WSI bridge; a capability report alone is not a Zink runtime pass.
++sampling. SDL retains OSMesa as its conservative fallback; the pinned Mesa
++runtime now also passes through the PS5 EGL/WSI bridge.
 +
 +The pinned integration now passes end to end on FW 5.500.008. Vulkan-PS5
 +records reflected push constants, dynamic-rendering RGBA8/BGRA8 clears, global
@@ -792,12 +862,13 @@ index ede0806..5659290 100644
 +and Vulkan object destruction is deferred until OpenAGC command recycling
 +releases native references. Two immediate guarded runs returned exact RGBA
 +`64,128,191,255`, presented, completed native teardown, self-exited, and
-+relaunched without reboot. The host suite remains 46/46; FW 11.60 is deferred.
++relaunched without reboot. The identical final libraries subsequently passed
++three FW 11.60 runs and two FW 5.50 replays; the host suite remains 47/47.
 +
  Milestone 6 is tracked by `analysis/eden-compatibility.md` and the
  `vulkan_ps5.eden_profile_report` test. The initial Eden suitability baseline
  had 30 hard gaps; the live ICD profile now reports
-@@ -148,9 +245,9 @@ The consumer includes `<vulkan/vulkan.h>` and exercises an ordinary Vulkan
+@@ -148,9 +252,9 @@ The consumer includes `<vulkan/vulkan.h>` and exercises an ordinary Vulkan
  consumer link commands containing a source-workspace path and verifies that
  the relocated `libvulkan_ps5.a`, `libopenagc.a`, and
  `libopenagc_psbc.a` archives are used. Its Prospero mode also verifies the
@@ -810,7 +881,7 @@ index ede0806..5659290 100644
  
  Run the host relocation check through CTest, or run the Prospero check
  directly:
-@@ -181,12 +278,15 @@ and rejects fatal or unexpected PID-scoped kernel messages. It permits at most
+@@ -181,12 +285,15 @@ and rejects fatal or unexpected PID-scoped kernel messages. It permits at most
  the single `amount:0x4000` warning already proven to be the FW 5.50 raw-ELF
  baseline.
  
@@ -832,7 +903,7 @@ index ede0806..5659290 100644
  
  ## Headless surface and swapchain sample
  
-@@ -201,11 +301,11 @@ acquire/submit/present frames with binary semaphores and a fence. Its host run,
+@@ -201,11 +308,11 @@ acquire/submit/present frames with binary semaphores and a fence. Its host run,
  the nine-test ICD suite, runner safety simulation, and Validation Layers pass;
  its Prospero ELF links with `-lSceSystemService -lunwind -lc++abi -lc++ -lm`.
  The current candidate SHA-256 is
@@ -846,7 +917,7 @@ index ede0806..5659290 100644
  also exhausts all three images, releases one from a delayed presentation
  thread, and verifies that the waiting acquire wakes without holding the
  swapchain lock across the VSYNC wait.
-@@ -214,7 +314,8 @@ swapchain lock across the VSYNC wait.
+@@ -214,7 +321,8 @@ swapchain lock across the VSYNC wait.
  PS5_HOST=10.0.1.41 examples/run_fw550_swapchain.sh
  ```
  
@@ -856,7 +927,7 @@ index ede0806..5659290 100644
  snapshot, scopes it to the new eboot PID, rejects fatal signals, app crashes,
  XO faults, duplicate or unrecognized kernel warnings, and any VM warning beyond
  the one proven FW 5.50/raw-ELF baseline line. It requires a self-requested kernel `KillApp()` event
-@@ -648,8 +749,9 @@ sampled-image/sampler descriptors for linear RGBA8/BGRA8 images are encoded
+@@ -648,8 +756,9 @@ sampled-image/sampler descriptors for linear RGBA8/BGRA8 images are encoded
  through OpenAGC and bound to compiler-selected graphics SGPRs. Linear image
  allocation and subresource layouts use the gfx1013-required 256-byte row pitch;
  the sampled-image path is repeatedly hardware-qualified. Dynamic buffer
@@ -868,7 +939,7 @@ index ede0806..5659290 100644
  
  On Prospero, `vkCreateDevice` reaches OpenAGC initialization, which now keeps
  the FW-specific GPU process-authorization preparation inside its `/dev/gc`
-@@ -747,8 +849,9 @@ addresses, and restore host-readable cache state after drawing. Depth/stencil
+@@ -747,8 +856,9 @@ addresses, and restore host-readable cache state after drawing. Depth/stencil
  clears remain unavailable; the first hardware gate initializes mapped direct
  memory and uses `LOAD`.
  
@@ -881,10 +952,10 @@ index ede0806..5659290 100644
  availability, partial results, and bounded waits. Repeated FW 5.50 runs matched
  the exact 18,432-sample result to independent mapped color coverage, so
 diff --git a/STATUS.md b/STATUS.md
-index e52bfb5..5256dfa 100644
+index e52bfb5..ecd210f 100644
 --- a/STATUS.md
 +++ b/STATUS.md
-@@ -1,5 +1,390 @@
+@@ -1,5 +1,411 @@
  # Implementation Status
  
 +## Current architecture status (2026-07-31)
@@ -1256,26 +1327,47 @@ index e52bfb5..5256dfa 100644
 +dependency order. A generic regression proves that deferred native count
 +returns to zero after pool reset.
 +
-+The diagnostic-free final candidate passes all 46 generic tests and all 46
++The diagnostic-free final candidate passes all 47 generic tests and all 47
 +ASan/UBSan tests, including the strict zero-gap Zink profile and package
 +relocation gate. The Prospero shared-ICD verifier reports `204` exports and
-+only `RELATIVE`, `GLOB_DAT`, and `JUMP_SLOT` relocations. Two consecutive
-+cleanup-guarded FW 5.500.008 runs at
-+`20260801T032341Z` and `20260801T032359Z` returned renderer `zink Vulkan 1.2`,
-+exact RGBA `64,128,191,255`, visible presentation, no native lifetime error,
-+normal self-exit, and immediate relaunch without reboot. Final tested hashes:
++only `RELATIVE`, `GLOB_DAT`, and `JUMP_SLOT` relocations. Mesa commit `6dbc12f`
++keeps `$ORIGIN` on EGL but removes Gallium's redundant identical RUNPATH. The
++exact candidate then passed three consecutive FW 11.600.005 runs at
++`20260801T060248Z`, `20260801T060313Z`, and `20260801T060341Z`, followed by
++two FW 5.500.008 replays at `20260801T060410Z` and `20260801T060435Z`. Every
++run returned renderer `zink Vulkan 1.2`, exact RGBA `64,128,191,255`, visible
++presentation, no native lifetime error, raw-klog PID-attributed teardown, and
++immediate relaunch without reboot. Final tested hashes:
 +
 +- `testps5zink`: `95da10acf89da3e35865890874034b8bffef1c563417309a0e4bb98404540ad9`
-+- `libvulkan_ps5.so`: `f2f2a176d0dc4dcb14942471af41d9fa6eebdeaba134084a52de280932b71f52`
++- `libvulkan_ps5.so`: `eacc4cf3dd1c15983e9f78482d65b14250d073a161c0b02433087eaeb5b6d271`
 +- `libEGL.so.1.0.0`: `0d2922b30b3dbbe25f060331043bb4a4732272d0813023568381306528913fc1`
-+- `libgallium-26.3.0-devel.so`: `9da905ef314e3362631406b1d85e013071b7fc80661cb663c7c40920d23eef85`
++- `libgallium-26.3.0-devel.so`: `75f3c3fcd229387557d4649af9eee293ac485feeaea1904e48649370565b6b5f`
 +
-+FW 11.60 qualification remains deferred until that endpoint is available.
++The subsequent `VK_EXT_depth_clip_enable` closure is hardware-qualified on FW
++5.500.008. The ICD enumerates the extension, reports and accepts
++`VkPhysicalDeviceDepthClipEnableFeaturesEXT`, rejects use without feature
++enablement or with nonzero reserved flags, parses the static rasterization
++state, and maps its independent Boolean to OpenAGC API 45. Pipeline inspection
++proves both explicit disable and explicit enable while depth clamp is active.
++A cleanup-guarded depth probe whose near triangle is outside the Vulkan Z
++frustum now passes with the same firmware-neutral OpenAGC clip state twice on
++FW 11.600.005 (`20260801T055428Z`, `20260801T055445Z`) and twice on FW
++5.500.008 (`20260801T055514Z`, `20260801T055537Z`). Every replay returned exact
++`green=12288 red=9830 raw=54145/0/9830 stencil=22118`; the identical ELF
++SHA-256 is
++`eb3ce7775f5aefe5dd232b44b9e85b781da9a78270e268fba3e3d12a06341cc2`.
++The first Zink replay exposed a missing gfx10.3 `DX_LINEAR_ATTR_CLIP_ENA` bit
++in OpenAGC's explicit clip-control register. OpenAGC commits `1d42288` and
++`34cbceb` corrected the named encoding and proved one firmware-neutral gfx1013
++value; the final Zink logs contain no `VK_EXT_depth_clip_enable` warning. This
++closes both the FW 11.60 depth-clip replay and the full SDL/EGL/Zink endpoint
++gate with identical application and library bytes.
 +
  ## Milestone 6: multiple viewports (2026-07-29)
  
  `multiViewport` is advertised and accepted through legacy and Features2
-@@ -779,24 +1164,25 @@ Implemented and verified:
+@@ -779,24 +1185,25 @@ Implemented and verified:
    complete host suite passes 11/11.
  - The Prospero relocation run passes using the relocated
    `VulkanPS5::ICD` target. Its link audit proves the three relocated archives
@@ -1822,10 +1914,10 @@ index 0000000..3e6e119
 +its linked artifacts are called hardware-qualified or assigned final hashes.
 diff --git a/analysis/vulkan-capability-baseline.tsv b/analysis/vulkan-capability-baseline.tsv
 new file mode 100644
-index 0000000..589baa4
+index 0000000..cb6f0cc
 --- /dev/null
 +++ b/analysis/vulkan-capability-baseline.tsv
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,66 @@
 +schema	1
 +api	4202496
 +instance_extension	VK_KHR_surface	25
@@ -1855,6 +1947,7 @@ index 0000000..589baa4
 +device_extension	VK_KHR_maintenance5	1
 +device_extension	VK_EXT_host_query_reset	1
 +device_extension	VK_EXT_robustness2	1
++device_extension	VK_EXT_depth_clip_enable	1
 +device_extension	VK_EXT_vertex_attribute_divisor	3
 +device_extension	VK_EXT_shader_demote_to_helper_invocation	1
 +device_extension	VK_KHR_driver_properties	1
@@ -1893,10 +1986,10 @@ index 0000000..589baa4
 +wsi_present_mode	2
 diff --git a/analysis/zink-compatibility.md b/analysis/zink-compatibility.md
 new file mode 100644
-index 0000000..ccef596
+index 0000000..bb122c4
 --- /dev/null
 +++ b/analysis/zink-compatibility.md
-@@ -0,0 +1,102 @@
+@@ -0,0 +1,115 @@
 +# SDL/Zink compatibility profile
 +
 +This profile follows `../SDL/docs/README-ps5-openagc.md`: Vulkan-PS5 must pass
@@ -1935,6 +2028,19 @@ index 0000000..ccef596
 +`VK_KHR_dynamic_rendering`, custom border colors with image-view swizzle,
 +maintenance5 entry points, and Vulkan 1.2 advertisement. The pinned strict
 +capability probe has no remaining gaps.
++
++`VK_EXT_depth_clip_enable` is now part of that live host contract as well. The
++ICD reports and accepts its feature structure, consumes the static graphics
++pipeline state, and translates explicit enable/disable to OpenAGC API 45 while
++keeping `depthClampEnable` independent. Host tests cover extension enumeration,
++feature-chain enablement, reserved-flag rejection, and the exact native flags.
++The cleanup-guarded depth probe passed twice on FW 5.500.008 and twice on FW
++11.600.005 with identical bytes, one firmware-neutral gfx1013 clip-control
++sequence, and exact coverage/depth/stencil output. The rebuilt Mesa/Zink
++integration then passed three consecutive FW 11.600.005 runs and two FW
++5.500.008 replays with exact RGBA `64,128,191,255`, visible presentation, complete
++teardown, immediate relaunch, and no `VK_EXT_depth_clip_enable` warning. The
++final depth-probe ELF and shared ICD hashes are recorded in `STATUS.md`.
 +
 +FW 5.500.008 qualification for this slice used the refreshed Prospero PSBC
 +archive. The earlier pipeline failure was an API-version mismatch in a stale
@@ -2174,6 +2280,118 @@ index 0000000..52a6ad0
 +{
 +    probe.result = floatBitsToUint(probe.values[1].x) ^ 0x5a5a5a5au;
 +}
+diff --git a/examples/depth/main.c b/examples/depth/main.c
+index c706840..53466ca 100644
+--- a/examples/depth/main.c
++++ b/examples/depth/main.c
+@@ -5,7 +5,8 @@
+ #include <string.h>
+ 
+ #include "vulkan_ps5_depth_frag_spv.h"
+-#if defined(VULKAN_PS5_DEPTH_CLAMP_PROBE)
++#if defined(VULKAN_PS5_DEPTH_CLAMP_PROBE) || \
++    defined(VULKAN_PS5_DEPTH_CLIP_ENABLE_PROBE)
+ #include "vulkan_ps5_depth_clamp_vert_spv.h"
+ #define DEPTH_VERTEX_SPV vulkan_ps5_depth_clamp_vert_spv
+ #else
+@@ -23,6 +24,15 @@
+ #define SAMPLE_NAME "depth_clamp"
+ #define NEAR_DEPTH_BITS 0x00000000u
+ #define FAR_DEPTH_BITS 0x3e800000u
++#elif defined(VULKAN_PS5_DEPTH_CLIP_ENABLE_PROBE)
++#include "../system_service_exit.h"
++#define SAMPLE_NAME "depth_clip_enable"
++/* With clipping and clamping both disabled, an out-of-range fragment depth
++ * is undefined after Vulkan's depth-range adjustment.  Prove that the
++ * negative-Z primitive survives through exact color/stencil coverage instead
++ * of assigning its depth word a value the specification does not guarantee. */
++#define NEAR_DEPTH_BITS 0xbe800000u
++#define FAR_DEPTH_BITS 0x3e800000u
+ #else
+ #define SAMPLE_NAME "depth"
+ #define NEAR_DEPTH_BITS 0x3e800000u
+@@ -78,6 +88,28 @@ int main(void)
+     const VkPhysicalDeviceFeatures enabled_features = {
+         .depthBiasClamp = VK_TRUE,
+     };
++#endif
++#if defined(VULKAN_PS5_DEPTH_CLIP_ENABLE_PROBE)
++    VkPhysicalDeviceDepthClipEnableFeaturesEXT supported_depth_clip = {
++        .sType =
++            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT,
++    };
++    VkPhysicalDeviceFeatures2 supported_features2 = {
++        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
++        .pNext = &supported_depth_clip,
++    };
++    vkGetPhysicalDeviceFeatures2(physical, &supported_features2);
++    if (!supported_depth_clip.depthClipEnable) {
++        printf("depth_clip_enable: feature is not supported\n");
++        return 1;
++    }
++    VkPhysicalDeviceDepthClipEnableFeaturesEXT enabled_depth_clip = {
++        .sType =
++            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT,
++        .depthClipEnable = VK_TRUE,
++    };
++    const char *depth_clip_extension =
++        VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME;
+ #endif
+     const float priority = 1.0f;
+     const VkDeviceQueueCreateInfo queue_info = {
+@@ -88,8 +120,15 @@ int main(void)
+     };
+     const VkDeviceCreateInfo device_info = {
+         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
++#if defined(VULKAN_PS5_DEPTH_CLIP_ENABLE_PROBE)
++        .pNext = &enabled_depth_clip,
++#endif
+         .queueCreateInfoCount = 1,
+         .pQueueCreateInfos = &queue_info,
++#if defined(VULKAN_PS5_DEPTH_CLIP_ENABLE_PROBE)
++        .enabledExtensionCount = 1u,
++        .ppEnabledExtensionNames = &depth_clip_extension,
++#endif
+ #if defined(VULKAN_PS5_DEPTH_BIAS_CLAMP_PROBE)
+         .pEnabledFeatures = &enabled_features,
+ #endif
+@@ -271,6 +310,13 @@ int main(void)
+     };
+     const VkPipelineRasterizationStateCreateInfo raster = {
+         .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
++#if defined(VULKAN_PS5_DEPTH_CLIP_ENABLE_PROBE)
++        .pNext = &(const VkPipelineRasterizationDepthClipStateCreateInfoEXT){
++            .sType =
++                VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT,
++            .depthClipEnable = VK_FALSE,
++        },
++#endif
+         .polygonMode = VK_POLYGON_MODE_FILL,
+         .cullMode = VK_CULL_MODE_NONE,
+ #if defined(VULKAN_PS5_DEPTH_CLAMP_PROBE)
+@@ -412,6 +458,12 @@ int main(void)
+         left != GREEN || right != RED || clear_depth == 0u ||
+         near_depth < 1000u || far_depth < 1000u ||
+         stencil_written != green + red;
++#if defined(VULKAN_PS5_DEPTH_CLIP_ENABLE_PROBE)
++    status = green != 12288u || red != 9830u || other != 0u ||
++        left != GREEN || right != RED || clear_depth != 54145u ||
++        near_depth != 0u || far_depth != 9830u ||
++        stencil_written != 22118u;
++#endif
+     if (status)
+         printf(SAMPLE_NAME ": mismatch green=%u red=%u other=%u left=%08x right=%08x raw=%u/%u/%u stencil=%u\n",
+             green, red, other, left, right, clear_depth, near_depth, far_depth,
+@@ -440,7 +492,8 @@ int main(void)
+     vkDestroyInstance(instance, NULL);
+ #if defined(OPENAGC_PROSPERO) && \
+     (defined(VULKAN_PS5_DEPTH_BIAS_CLAMP_PROBE) || \
+-     defined(VULKAN_PS5_DEPTH_CLAMP_PROBE))
++     defined(VULKAN_PS5_DEPTH_CLAMP_PROBE) || \
++     defined(VULKAN_PS5_DEPTH_CLIP_ENABLE_PROBE))
+     vulkan_ps5_system_service_exit(SAMPLE_NAME);
+ #endif
+     return status;
 diff --git a/examples/indexed_textured/custom_border_color.frag b/examples/indexed_textured/custom_border_color.frag
 new file mode 100644
 index 0000000..ade13f3
@@ -2439,6 +2657,31 @@ index d170cb9..72f7bfd 100644
      uint32_t red = 0u, green = 0u, unexpected = 0u;
      for (uint32_t i = 0u; i < TARGET_WIDTH * TARGET_HEIGHT; ++i) {
          if (pixels[i] == 0xff0000ffu) red++;
+diff --git a/examples/run_fw1160_depth_clip_enable.sh b/examples/run_fw1160_depth_clip_enable.sh
+new file mode 100755
+index 0000000..a486872
+--- /dev/null
++++ b/examples/run_fw1160_depth_clip_enable.sh
+@@ -0,0 +1,19 @@
++#!/bin/sh
++set -eu
++
++script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
++repo_dir=$(dirname -- "$script_dir")
++build_dir=${VULKAN_PS5_PROSPERO_BUILD:-$repo_dir/build-prospero-depthclip}
++
++VULKAN_PS5_EXIT_ELF="$build_dir/vulkan_ps5_depth_clip_enable_probe.elf" \
++VULKAN_PS5_CLEANUP_ELF="$build_dir/vulkan_ps5_process_cleanup.elf" \
++VULKAN_PS5_EXIT_REMOTE_NAME=vulkan_ps5_depth_clip_enable \
++VULKAN_PS5_EXIT_FILE_STEM=fw1160-depth-clip-enable \
++VULKAN_PS5_EXIT_DISPLAY_NAME='depth-clip-enable probe' \
++VULKAN_PS5_EXIT_SUCCESS_REGEX='^depth_clip_enable: PASS green=[0-9]+ red=[0-9]+ raw=[0-9]+/[0-9]+/[0-9]+ stencil=[0-9]+$' \
++VULKAN_PS5_EXIT_FAILURE_PATTERN='depth_clip_enable: mismatch' \
++VULKAN_PS5_REQUIRE_CLEANUP=1 \
++VULKAN_PS5_ENDPOINT_LABEL=FW1160 \
++VULKAN_PS5_LIVE_KLOG=1 \
++VULKAN_PS5_ALLOW_NO_KLOG=1 \
++    exec "$script_dir/run_fw550_system_exit_probe.sh"
 diff --git a/examples/run_fw550_alpha_to_one.sh b/examples/run_fw550_alpha_to_one.sh
 new file mode 100755
 index 0000000..6501070
@@ -2488,6 +2731,27 @@ index 0000000..9b5e7b3
 +VULKAN_PS5_REQUIRE_CLEANUP=1 \
 +VULKAN_PS5_EXIT_SUCCESS_REGEX='^custom_border_color: PASS covered=[0-9][0-9]* blue=[0-9][0-9]* swizzle=BR$' \
 +VULKAN_PS5_EXIT_FAILURE_PATTERN='custom_border_color: mismatch' \
++    exec "$script_dir/run_fw550_system_exit_probe.sh"
+diff --git a/examples/run_fw550_depth_clip_enable.sh b/examples/run_fw550_depth_clip_enable.sh
+new file mode 100755
+index 0000000..7789175
+--- /dev/null
++++ b/examples/run_fw550_depth_clip_enable.sh
+@@ -0,0 +1,15 @@
++#!/bin/sh
++set -eu
++
++script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
++repo_dir=$(dirname -- "$script_dir")
++build_dir=${VULKAN_PS5_PROSPERO_BUILD:-$repo_dir/build-prospero-m2}
++
++VULKAN_PS5_EXIT_ELF="$build_dir/vulkan_ps5_depth_clip_enable_probe.elf" \
++VULKAN_PS5_EXIT_REMOTE_NAME=vulkan_ps5_depth_clip_enable \
++VULKAN_PS5_EXIT_FILE_STEM=depth-clip-enable-run1 \
++VULKAN_PS5_EXIT_DISPLAY_NAME='depth-clip-enable probe' \
++VULKAN_PS5_EXIT_SUCCESS_REGEX='^depth_clip_enable: PASS green=[0-9]+ red=[0-9]+ raw=[0-9]+/[0-9]+/[0-9]+ stencil=[0-9]+$' \
++VULKAN_PS5_EXIT_FAILURE_PATTERN='depth_clip_enable: mismatch' \
++VULKAN_PS5_REQUIRE_CLEANUP=1 \
 +    exec "$script_dir/run_fw550_system_exit_probe.sh"
 diff --git a/examples/run_fw550_dynamic_rendering.sh b/examples/run_fw550_dynamic_rendering.sh
 new file mode 100755
@@ -2669,11 +2933,19 @@ index d22d6d4..610ec78 100755
      target_pid=$1
      uv run --project "$pyps4debug_dir" python \
 diff --git a/examples/run_fw550_system_exit_probe.sh b/examples/run_fw550_system_exit_probe.sh
-index e30dc73..db3c7a2 100755
+index e30dc73..d1d1958 100755
 --- a/examples/run_fw550_system_exit_probe.sh
 +++ b/examples/run_fw550_system_exit_probe.sh
-@@ -12,6 +12,8 @@ klog_port=${VULKAN_PS5_KLOG_PORT:-3232}
+@@ -7,21 +7,39 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+ repo_dir=$(dirname -- "$script_dir")
+ build_dir=${VULKAN_PS5_PROSPERO_BUILD:-$repo_dir/build-prospero-m2}
+ log_dir=${VULKAN_PS5_FW550_LOG_DIR:-$script_dir/qualification-logs}
++endpoint_label=${VULKAN_PS5_ENDPOINT_LABEL:-FW550}
+ websrv_timeout=${VULKAN_PS5_WEBSRV_TIMEOUT:-30}
+ klog_port=${VULKAN_PS5_KLOG_PORT:-3232}
  klog_settle_delay=${VULKAN_PS5_KLOG_SETTLE_DELAY:-2}
++live_klog=${VULKAN_PS5_LIVE_KLOG:-0}
++allow_no_klog=${VULKAN_PS5_ALLOW_NO_KLOG:-0}
  pyps4debug_dir=${PYPS4DEBUG_DIR:-/Users/bizkut/Downloads/PS5/homebrew/PyPS4debug}
  elf=${VULKAN_PS5_EXIT_ELF:-$build_dir/vulkan_ps5_system_exit_probe.elf}
 +cleanup_elf=${VULKAN_PS5_CLEANUP_ELF:-$build_dir/vulkan_ps5_process_cleanup.elf}
@@ -2681,7 +2953,19 @@ index e30dc73..db3c7a2 100755
  remote_name=${VULKAN_PS5_EXIT_REMOTE_NAME:-vulkan_ps5_system_exit_probe}
  file_stem=${VULKAN_PS5_EXIT_FILE_STEM:-system-exit-probe}
  display_name=${VULKAN_PS5_EXIT_DISPLAY_NAME:-system-exit probe}
-@@ -22,6 +24,10 @@ if [ ! -f "$elf" ]; then
+ success_regex=${VULKAN_PS5_EXIT_SUCCESS_REGEX:-'^system-exit-probe: ready app=0x[0-9a-f]+$'}
+ failure_pattern=${VULKAN_PS5_EXIT_FAILURE_PATTERN:-'system-exit-probe: unexpected return'}
+ 
++case "$live_klog" in
++    0|1) ;;
++    *) echo "VULKAN_PS5_LIVE_KLOG must be 0 or 1" >&2; exit 2 ;;
++esac
++case "$allow_no_klog" in
++    0|1) ;;
++    *) echo "VULKAN_PS5_ALLOW_NO_KLOG must be 0 or 1" >&2; exit 2 ;;
++esac
++
+ if [ ! -f "$elf" ]; then
      echo "missing Prospero probe: $elf" >&2
      exit 2
  fi
@@ -2692,7 +2976,7 @@ index e30dc73..db3c7a2 100755
  if ! command -v nc >/dev/null 2>&1 || ! command -v uv >/dev/null 2>&1 || \
     [ ! -d "$pyps4debug_dir" ]; then
      echo "nc and ps5debug-NG/PyPS4debug are required" >&2
-@@ -33,6 +39,24 @@ if ! curl -sS --connect-timeout 3 --max-time 5 \
+@@ -33,11 +51,45 @@ if ! curl -sS --connect-timeout 3 --max-time 5 \
      exit 1
  fi
  
@@ -2717,6 +3001,117 @@ index e30dc73..db3c7a2 100755
  kill_exact_pid() {
      uv run --project "$pyps4debug_dir" python \
          "$script_dir/ps5debug_kill_process.py" --pid "$1" "$PS5_HOST" eboot.bin
+ }
+ 
++assert_process_absent() {
++    uv run --project "$pyps4debug_dir" python \
++        "$script_dir/ps5debug_kill_process.py" --assert-absent \
++        "$PS5_HOST" eboot.bin
++    uv run --project "$pyps4debug_dir" python \
++        "$script_dir/ps5debug_kill_process.py" --assert-absent \
++        "$PS5_HOST" eboot.elf
++}
++
++accept_no_klog_fallback() {
++    [ "$allow_no_klog" = 1 ] &&
++        assert_process_absent &&
++        curl -sS --connect-timeout 3 --max-time 5 \
++            "http://${PS5_HOST}:8080/" >/dev/null
++}
++
+ latest_eboot_pid() {
+     sed -n 's/^<\([0-9][0-9]*\)> EXEC \/app0\/eboot\.bin .*category=native_game.*/\1/p' "$1" | \
+         tail -n 1
+@@ -54,12 +106,32 @@ timestamp=$(date -u +%Y%m%dT%H%M%SZ)
+ log="$log_dir/${timestamp}-${file_stem}.log"
+ klog="$log_dir/${timestamp}-${file_stem}.klog"
+ target_klog="$log_dir/${timestamp}-${file_stem}-target.klog"
++live_klog_pid=
+ 
+-echo "FW550 ${display_name} 1/1"
++stop_live_klog() {
++    if [ -n "$live_klog_pid" ]; then
++        kill "$live_klog_pid" >/dev/null 2>&1 || true
++        wait "$live_klog_pid" >/dev/null 2>&1 || true
++        live_klog_pid=
++    fi
++}
++trap 'stop_live_klog' EXIT
++
++if [ "$live_klog" = 1 ]; then
++    nc -w 30 "$PS5_HOST" "$klog_port" >"$klog" 2>&1 &
++    live_klog_pid=$!
++    sleep 1
++fi
++
++echo "${endpoint_label} ${display_name} 1/1"
+ if ! VULKAN_PS5_WEBSRV_TIMEOUT="$websrv_timeout" \
+     "$script_dir/deploy_websrv.sh" "$elf" "$remote_name" >"$log" 2>&1; then
+     sleep "$klog_settle_delay"
+-    nc -w 5 "$PS5_HOST" "$klog_port" >"$klog" 2>&1 || true
++    if [ "$live_klog" = 1 ]; then
++        stop_live_klog
++    else
++        nc -w 5 "$PS5_HOST" "$klog_port" >"$klog" 2>&1 || true
++    fi
+     if [ -s "$klog" ]; then sanitize_klog "$klog"; fi
+     failed_pid=$(latest_eboot_pid "$klog")
+     if [ -n "$failed_pid" ]; then
+@@ -71,11 +143,11 @@ if ! VULKAN_PS5_WEBSRV_TIMEOUT="$websrv_timeout" \
+ fi
+ 
+ sleep "$klog_settle_delay"
+-if ! nc -w 5 "$PS5_HOST" "$klog_port" >"$klog" 2>&1 || [ ! -s "$klog" ]; then
+-    echo "${display_name} klog capture failed: $klog" >&2
+-    exit 1
++if [ "$live_klog" = 1 ]; then
++    stop_live_klog
++elif ! nc -w 5 "$PS5_HOST" "$klog_port" >"$klog" 2>&1; then
++    :
+ fi
+-sanitize_klog "$klog"
+ sed -n '1,160p' "$log"
+ if ! grep -E "$success_regex" "$log" >/dev/null || \
+    grep -F "$failure_pattern" "$log" >/dev/null; then
+@@ -86,9 +158,26 @@ if ! grep -E "$success_regex" "$log" >/dev/null || \
+     echo "${display_name} did not reach its self-kill oracle: $log" >&2
+     exit 1
+ fi
++if [ ! -s "$klog" ]; then
++    if ! accept_no_klog_fallback; then
++        echo "${display_name} klog capture failed: $klog" >&2
++        exit 1
++    fi
++    echo "${endpoint_label} ${display_name}: NO_KLOG_PROCESS_ABSENCE"
++    echo "log: $log"
++    echo "klog unavailable: $klog"
++    exit 0
++fi
++sanitize_klog "$klog"
+ 
+ target_pid=$(latest_eboot_pid "$klog")
+ if [ -z "$target_pid" ]; then
++    if accept_no_klog_fallback; then
++        echo "${endpoint_label} ${display_name}: NO_KLOG_PROCESS_ABSENCE"
++        echo "log: $log"
++        echo "klog unavailable or unattributable: $klog"
++        exit 0
++    fi
+     echo "kernel log did not identify the ${display_name} PID: $klog" >&2
+     exit 1
+ fi
+@@ -143,9 +232,9 @@ if grep -F '[KERNEL] WARNING:' "$target_klog" | grep -Fvx "$warning" \
+     exit 1
+ fi
+ if [ "$warning_count" -eq 1 ]; then
+-    echo "FW550 ${display_name}: BASELINE_VM_WARNING amount=0x4000"
++    echo "${endpoint_label} ${display_name}: BASELINE_VM_WARNING amount=0x4000"
+ else
+-    echo "FW550 ${display_name}: CLEAN"
++    echo "${endpoint_label} ${display_name}: CLEAN"
+ fi
+ echo "log: $log"
+ echo "klog: $target_klog"
 diff --git a/examples/triangle/alpha_to_one.frag b/examples/triangle/alpha_to_one.frag
 new file mode 100644
 index 0000000..2bd67c9
@@ -3023,7 +3418,7 @@ index b5fc26b..a8a1556 100644
       defined(VULKAN_PS5_LARGE_POINTS_PROBE))
      vulkan_ps5_system_service_exit(SAMPLE_LABEL);
 diff --git a/src/vulkan_ps5.c b/src/vulkan_ps5.c
-index 10a370a..e41852f 100644
+index 10a370a..b6c69c4 100644
 --- a/src/vulkan_ps5.c
 +++ b/src/vulkan_ps5.c
 @@ -1,18 +1,18 @@
@@ -3074,7 +3469,7 @@ index 10a370a..e41852f 100644
  };
  
  struct VkPs5Device {
-@@ -47,41 +53,66 @@ struct VkPs5Device {
+@@ -47,41 +53,67 @@ struct VkPs5Device {
      VkAllocationCallbacks allocator;
      VkBool32 has_allocator;
      VkPs5PhysicalDevice *physical_device;
@@ -3090,6 +3485,7 @@ index 10a370a..e41852f 100644
 -    VkBool32 tessellation_ready;
      VkBool32 robust_buffer_access;
 +    VkBool32 null_descriptor;
++    VkBool32 depth_clip_enable;
      atomic_uint memory_allocation_count;
 +    atomic_flag deferred_native_lock;
 +    VkPs5DeferredNative *deferred_native;
@@ -3157,7 +3553,7 @@ index 10a370a..e41852f 100644
          result |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
      return result;
  }
-@@ -91,6 +122,7 @@ static int ps5_color_format(VkFormat format) {
+@@ -91,6 +123,7 @@ static int ps5_color_format(VkFormat format) {
      case VK_FORMAT_R8_UNORM: return AGC_GFX1013_RT_FORMAT_R8_UNORM;
      case VK_FORMAT_R8G8_UNORM: return AGC_GFX1013_RT_FORMAT_RG8_UNORM;
      case VK_FORMAT_R8G8B8A8_UNORM: return AGC_GFX1013_RT_FORMAT_RGBA8_UNORM;
@@ -3165,7 +3561,7 @@ index 10a370a..e41852f 100644
      case VK_FORMAT_B8G8R8A8_UNORM: return AGC_GFX1013_RT_FORMAT_BGRA8_UNORM;
      case VK_FORMAT_A2B10G10R10_UNORM_PACK32: return AGC_GFX1013_RT_FORMAT_RGB10A2_UNORM;
      case VK_FORMAT_R16_SFLOAT: return AGC_GFX1013_RT_FORMAT_R16_FLOAT;
-@@ -101,6 +133,7 @@ static int ps5_color_format(VkFormat format) {
+@@ -101,6 +134,7 @@ static int ps5_color_format(VkFormat format) {
      case VK_FORMAT_R32G32B32A32_SFLOAT: return AGC_GFX1013_RT_FORMAT_RGBA32_FLOAT;
      case VK_FORMAT_B10G11R11_UFLOAT_PACK32: return AGC_GFX1013_RT_FORMAT_R11G11B10_FLOAT;
      case VK_FORMAT_R8G8B8A8_SRGB: return AGC_GFX1013_RT_FORMAT_RGBA8_SRGB;
@@ -3173,7 +3569,19 @@ index 10a370a..e41852f 100644
      case VK_FORMAT_B8G8R8A8_SRGB: return AGC_GFX1013_RT_FORMAT_BGRA8_SRGB;
      default: return -1;
      }
-@@ -194,63 +227,140 @@ VkDevice vk_ps5_queue_device(VkQueue queue_handle) {
+@@ -165,6 +199,11 @@ VkBool32 vk_ps5_device_robust_buffer_access(VkDevice device_handle) {
+     return device ? device->robust_buffer_access : VK_FALSE;
+ }
+ 
++VkBool32 vk_ps5_device_depth_clip_enable(VkDevice device_handle) {
++    const VkPs5Device *device = (const VkPs5Device *)device_handle;
++    return device ? device->depth_clip_enable : VK_FALSE;
++}
++
+ void *vk_ps5_instance_alloc(VkInstance instance_handle,
+                             const VkAllocationCallbacks *allocator,
+                             size_t size, size_t alignment,
+@@ -194,63 +233,140 @@ VkDevice vk_ps5_queue_device(VkQueue queue_handle) {
      return queue ? (VkDevice)queue->device : VK_NULL_HANDLE;
  }
  
@@ -3362,7 +3770,7 @@ index 10a370a..e41852f 100644
  }
  
  VkDeviceSize vk_ps5_memory_size(VkDeviceMemory memory_handle) {
-@@ -258,11 +368,128 @@ VkDeviceSize vk_ps5_memory_size(VkDeviceMemory memory_handle) {
+@@ -258,11 +374,128 @@ VkDeviceSize vk_ps5_memory_size(VkDeviceMemory memory_handle) {
      return memory ? memory->size : 0;
  }
  
@@ -3492,7 +3900,7 @@ index 10a370a..e41852f 100644
  }
  
  static VkResult enumerate_items(uint32_t total, size_t item_size, const void *items,
-@@ -290,9 +517,34 @@ static const VkExtensionProperties instance_extensions[] = {
+@@ -290,9 +523,36 @@ static const VkExtensionProperties instance_extensions[] = {
  };
  
  static const VkExtensionProperties device_extensions[] = {
@@ -3527,10 +3935,12 @@ index 10a370a..e41852f 100644
 +{ VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME,
 +VK_EXT_HOST_QUERY_RESET_SPEC_VERSION },
 +{ VK_EXT_ROBUSTNESS_2_EXTENSION_NAME, VK_EXT_ROBUSTNESS_2_SPEC_VERSION },
++{ VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
++VK_EXT_DEPTH_CLIP_ENABLE_SPEC_VERSION },
      { VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME,
        VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_SPEC_VERSION },
      { VK_EXT_SHADER_DEMOTE_TO_HELPER_INVOCATION_EXTENSION_NAME,
-@@ -352,7 +604,7 @@ vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo,
+@@ -352,7 +612,7 @@ vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo,
          if (VK_API_VERSION_VARIANT(requested) != 0 ||
              VK_API_VERSION_MAJOR(requested) > 1 ||
              (VK_API_VERSION_MAJOR(requested) == 1 &&
@@ -3539,7 +3949,7 @@ index 10a370a..e41852f 100644
              return VK_ERROR_INCOMPATIBLE_DRIVER;
      }
  
-@@ -412,7 +664,7 @@ vkEnumeratePhysicalDeviceGroups(VkInstance instance, uint32_t *pPhysicalDeviceGr
+@@ -412,7 +672,7 @@ vkEnumeratePhysicalDeviceGroups(VkInstance instance, uint32_t *pPhysicalDeviceGr
  }
  
  static void fill_properties(VkPhysicalDeviceProperties *properties) {
@@ -3548,7 +3958,7 @@ index 10a370a..e41852f 100644
      memset(properties, 0, sizeof(*properties));
      properties->apiVersion = VK_PS5_API_VERSION;
      properties->driverVersion = VK_MAKE_VERSION(0, 1, 0);
-@@ -552,6 +804,7 @@ static void fill_features(VkPhysicalDeviceFeatures *features) {
+@@ -552,6 +812,7 @@ static void fill_features(VkPhysicalDeviceFeatures *features) {
      memset(features, 0, sizeof(*features));
      features->robustBufferAccess = VK_TRUE;
      features->dualSrcBlend = VK_TRUE;
@@ -3556,7 +3966,7 @@ index 10a370a..e41852f 100644
      features->depthBiasClamp = VK_TRUE;
      features->depthClamp = VK_TRUE;
      features->drawIndirectFirstInstance = VK_TRUE;
-@@ -585,17 +838,17 @@ vkGetPhysicalDeviceFeatures(VkPhysicalDevice physicalDevice, VkPhysicalDeviceFea
+@@ -585,17 +846,17 @@ vkGetPhysicalDeviceFeatures(VkPhysicalDevice physicalDevice, VkPhysicalDeviceFea
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkGetPhysicalDeviceMemoryProperties(VkPhysicalDevice physicalDevice,
                                      VkPhysicalDeviceMemoryProperties *pMemoryProperties) {
@@ -3580,7 +3990,7 @@ index 10a370a..e41852f 100644
          pMemoryProperties->memoryHeaps[i].flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT;
      }
  }
-@@ -623,7 +876,7 @@ vkGetPhysicalDeviceQueueFamilyProperties(VkPhysicalDevice physicalDevice,
+@@ -623,7 +884,7 @@ vkGetPhysicalDeviceQueueFamilyProperties(VkPhysicalDevice physicalDevice,
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkGetPhysicalDeviceFormatProperties(VkPhysicalDevice physicalDevice, VkFormat format,
                                      VkFormatProperties *pFormatProperties) {
@@ -3589,7 +3999,7 @@ index 10a370a..e41852f 100644
      int color_index = ps5_color_format(format);
      int depth_index = ps5_depth_format(format);
      (void)physicalDevice;
-@@ -656,6 +909,7 @@ vkGetPhysicalDeviceFormatProperties(VkPhysicalDevice physicalDevice, VkFormat fo
+@@ -656,6 +917,7 @@ vkGetPhysicalDeviceFormatProperties(VkPhysicalDevice physicalDevice, VkFormat fo
          break;
      case VK_FORMAT_R8_UNORM:
      case VK_FORMAT_R8G8_UNORM:
@@ -3597,7 +4007,7 @@ index 10a370a..e41852f 100644
      case VK_FORMAT_B8G8R8A8_UNORM:
      case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
      case VK_FORMAT_R16_SFLOAT:
-@@ -672,6 +926,7 @@ vkGetPhysicalDeviceFormatProperties(VkPhysicalDevice physicalDevice, VkFormat fo
+@@ -672,6 +934,7 @@ vkGetPhysicalDeviceFormatProperties(VkPhysicalDevice physicalDevice, VkFormat fo
              VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
          break;
      case VK_FORMAT_R8G8B8A8_SRGB:
@@ -3605,7 +4015,7 @@ index 10a370a..e41852f 100644
      case VK_FORMAT_B8G8R8A8_SRGB:
          pFormatProperties->linearTilingFeatures = color;
          pFormatProperties->optimalTilingFeatures = color;
-@@ -694,7 +949,7 @@ vkGetPhysicalDeviceImageFormatProperties(VkPhysicalDevice physicalDevice, VkForm
+@@ -694,7 +957,7 @@ vkGetPhysicalDeviceImageFormatProperties(VkPhysicalDevice physicalDevice, VkForm
                                           VkImageType type, VkImageTiling tiling,
                                           VkImageUsageFlags usage, VkImageCreateFlags flags,
                                           VkImageFormatProperties *pImageFormatProperties) {
@@ -3614,7 +4024,7 @@ index 10a370a..e41852f 100644
      (void)physicalDevice;
      if (!pImageFormatProperties) return VK_ERROR_INITIALIZATION_FAILED;
      memset(pImageFormatProperties, 0, sizeof(*pImageFormatProperties));
-@@ -721,8 +976,6 @@ vkGetPhysicalDeviceImageFormatProperties(VkPhysicalDevice physicalDevice, VkForm
+@@ -721,8 +984,6 @@ vkGetPhysicalDeviceImageFormatProperties(VkPhysicalDevice physicalDevice, VkForm
      if ((usage & VK_IMAGE_USAGE_STORAGE_BIT) &&
          !(supported & VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT))
          return VK_ERROR_FORMAT_NOT_SUPPORTED;
@@ -3623,7 +4033,7 @@ index 10a370a..e41852f 100644
      if ((usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) &&
          !(supported & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT))
          return VK_ERROR_FORMAT_NOT_SUPPORTED;
-@@ -752,7 +1005,7 @@ vkGetPhysicalDeviceImageFormatProperties(VkPhysicalDevice physicalDevice, VkForm
+@@ -752,7 +1013,7 @@ vkGetPhysicalDeviceImageFormatProperties(VkPhysicalDevice physicalDevice, VkForm
          !(usage & ~(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
                      VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT)))
          pImageFormatProperties->sampleCounts |= VK_SAMPLE_COUNT_4_BIT;
@@ -3632,7 +4042,7 @@ index 10a370a..e41852f 100644
      return VK_SUCCESS;
  }
  
-@@ -780,7 +1033,7 @@ vkEnumerateDeviceExtensionProperties(VkPhysicalDevice physicalDevice, const char
+@@ -780,7 +1041,7 @@ vkEnumerateDeviceExtensionProperties(VkPhysicalDevice physicalDevice, const char
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkGetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
                                 VkPhysicalDeviceProperties2 *pProperties) {
@@ -3641,7 +4051,7 @@ index 10a370a..e41852f 100644
      if (!pProperties) return;
      fill_properties(&pProperties->properties);
      for (VkBaseOutStructure *next = (VkBaseOutStructure *)pProperties->pNext;
-@@ -824,7 +1077,7 @@ vkGetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
+@@ -824,7 +1085,7 @@ vkGetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
              VkPhysicalDeviceMaintenance3Properties *maintenance =
                  (VkPhysicalDeviceMaintenance3Properties *)next;
              maintenance->maxPerSetDescriptors = 1024;
@@ -3650,7 +4060,7 @@ index 10a370a..e41852f 100644
              break;
          }
          case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT:
-@@ -885,7 +1138,59 @@ vkGetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
+@@ -885,7 +1146,59 @@ vkGetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
              v11->maxMultiviewInstanceIndex = 0;
              v11->protectedNoFault = VK_FALSE;
              v11->maxPerSetDescriptors = 1024;
@@ -3711,7 +4121,7 @@ index 10a370a..e41852f 100644
              break;
          }
          default:
-@@ -942,6 +1247,55 @@ vkGetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
+@@ -942,6 +1255,59 @@ vkGetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
              ((VkPhysicalDeviceHostQueryResetFeatures *)next)->hostQueryReset =
                  VK_TRUE;
              break;
@@ -3753,6 +4163,10 @@ index 10a370a..e41852f 100644
 +            robustness2->nullDescriptor = VK_TRUE;
 +            break;
 +        }
++        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT:
++            ((VkPhysicalDeviceDepthClipEnableFeaturesEXT *)next)
++                ->depthClipEnable = VK_TRUE;
++            break;
 +        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES: {
 +            VkPhysicalDeviceLineRasterizationFeatures *line =
 +                (VkPhysicalDeviceLineRasterizationFeatures *)next;
@@ -3767,7 +4181,7 @@ index 10a370a..e41852f 100644
          case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES_EXT:
              ((VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT *)next)
                  ->shaderDemoteToHelperInvocation = VK_TRUE;
-@@ -953,6 +1307,18 @@ vkGetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
+@@ -953,6 +1319,18 @@ vkGetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
              divisor->vertexAttributeInstanceRateZeroDivisor = VK_FALSE;
              break;
          }
@@ -3786,7 +4200,7 @@ index 10a370a..e41852f 100644
          case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES: {
              VkPhysicalDeviceVulkan11Features *f = (VkPhysicalDeviceVulkan11Features *)next;
              f->storageBuffer16BitAccess = VK_FALSE;
-@@ -1132,6 +1498,40 @@ static VkBool32 unsupported_device_features_requested(const void *pNext) {
+@@ -1132,6 +1510,42 @@ static VkBool32 unsupported_device_features_requested(const void *pNext) {
              break;
          case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES:
              break;
@@ -3815,6 +4229,8 @@ index 10a370a..e41852f 100644
 +                return VK_TRUE;
 +            break;
 +        }
++        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT:
++            break;
 +        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES: {
 +            const VkPhysicalDeviceLineRasterizationFeatures *line =
 +                (const VkPhysicalDeviceLineRasterizationFeatures *)next;
@@ -3827,7 +4243,7 @@ index 10a370a..e41852f 100644
          case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES_EXT:
              break;
          case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES: {
-@@ -1141,6 +1541,26 @@ static VkBool32 unsupported_device_features_requested(const void *pNext) {
+@@ -1141,6 +1555,26 @@ static VkBool32 unsupported_device_features_requested(const void *pNext) {
                  return VK_TRUE;
              break;
          }
@@ -3854,7 +4270,7 @@ index 10a370a..e41852f 100644
          case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES: {
              const VkPhysicalDeviceVulkan11Features *f =
                  (const VkPhysicalDeviceVulkan11Features *)next;
-@@ -1189,6 +1609,20 @@ static VkBool32 robust_buffer_access_requested(
+@@ -1189,6 +1623,34 @@ static VkBool32 robust_buffer_access_requested(
      return VK_FALSE;
  }
  
@@ -3872,14 +4288,29 @@ index 10a370a..e41852f 100644
 +    return VK_FALSE;
 +}
 +
++static VkBool32 depth_clip_enable_requested(
++    const VkDeviceCreateInfo *create_info)
++{
++    for (const VkBaseInStructure *next =
++             (const VkBaseInStructure *)create_info->pNext;
++         next; next = next->pNext) {
++        if (next->sType ==
++                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT)
++            return ((const VkPhysicalDeviceDepthClipEnableFeaturesEXT *)next)
++                ->depthClipEnable;
++    }
++    return VK_FALSE;
++}
++
  VK_PS5_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
  vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo *pCreateInfo,
                 const VkAllocationCallbacks *pAllocator, VkDevice *pDevice) {
-@@ -1224,21 +1658,49 @@ vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo *pCreat
+@@ -1224,21 +1686,50 @@ vkCreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo *pCreat
      }
      device->physical_device = (VkPs5PhysicalDevice *)physicalDevice;
      device->robust_buffer_access = robust_buffer_access_requested(pCreateInfo);
 +    device->null_descriptor = null_descriptor_requested(pCreateInfo);
++    device->depth_clip_enable = depth_clip_enable_requested(pCreateInfo);
      device->queue.device = device;
      atomic_init(&device->memory_allocation_count, 0);
 -    atomic_init(&device->queue.next_submission, 0);
@@ -3936,7 +4367,7 @@ index 10a370a..e41852f 100644
      }
      set_loader_magic_value(device);
      set_loader_magic_value(&device->queue);
-@@ -1251,87 +1713,14 @@ vkDestroyDevice(VkDevice device_handle, const VkAllocationCallbacks *pAllocator)
+@@ -1251,87 +1742,14 @@ vkDestroyDevice(VkDevice device_handle, const VkAllocationCallbacks *pAllocator)
      VkPs5Device *device = (VkPs5Device *)device_handle;
      if (!device) return;
      const VkAllocationCallbacks *allocator = pAllocator ? pAllocator : device_allocator(device);
@@ -4029,7 +4460,7 @@ index 10a370a..e41852f 100644
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkGetDeviceQueue(VkDevice device_handle, uint32_t queueFamilyIndex, uint32_t queueIndex,
                   VkQueue *pQueue) {
-@@ -1383,16 +1772,17 @@ VK_PS5_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
+@@ -1383,16 +1801,17 @@ VK_PS5_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
  vkAllocateMemory(VkDevice device_handle, const VkMemoryAllocateInfo *pAllocateInfo,
                   const VkAllocationCallbacks *pAllocator, VkDeviceMemory *pMemory) {
      VkPs5Device *device = (VkPs5Device *)device_handle;
@@ -4050,7 +4481,7 @@ index 10a370a..e41852f 100644
      for (const VkBaseInStructure *next = (const VkBaseInStructure *)pAllocateInfo->pNext;
           next; next = next->pNext) {
          if (next->sType == VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO) {
-@@ -1403,6 +1793,12 @@ vkAllocateMemory(VkDevice device_handle, const VkMemoryAllocateInfo *pAllocateIn
+@@ -1403,6 +1822,12 @@ vkAllocateMemory(VkDevice device_handle, const VkMemoryAllocateInfo *pAllocateIn
          } else if (next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO &&
                     ((const VkExportMemoryAllocateInfo *)next)->handleTypes != 0) {
              return VK_ERROR_FEATURE_NOT_PRESENT;
@@ -4063,7 +4494,7 @@ index 10a370a..e41852f 100644
          }
      }
      unsigned allocations = atomic_load(&device->memory_allocation_count);
-@@ -1417,21 +1813,31 @@ vkAllocateMemory(VkDevice device_handle, const VkMemoryAllocateInfo *pAllocateIn
+@@ -1417,21 +1842,31 @@ vkAllocateMemory(VkDevice device_handle, const VkMemoryAllocateInfo *pAllocateIn
          atomic_fetch_sub(&device->memory_allocation_count, 1);
          return VK_ERROR_OUT_OF_HOST_MEMORY;
      }
@@ -4105,7 +4536,7 @@ index 10a370a..e41852f 100644
      memory->size = pAllocateInfo->allocationSize;
      memory->memory_type_index = pAllocateInfo->memoryTypeIndex;
      *pMemory = (VkDeviceMemory)memory;
-@@ -1445,10 +1851,9 @@ vkFreeMemory(VkDevice device_handle, VkDeviceMemory memory_handle,
+@@ -1445,10 +1880,9 @@ vkFreeMemory(VkDevice device_handle, VkDeviceMemory memory_handle,
      VkPs5Memory *memory = (VkPs5Memory *)memory_handle;
      if (!device || !memory) return;
      const VkAllocationCallbacks *allocator = pAllocator ? pAllocator : device_allocator(device);
@@ -4119,7 +4550,7 @@ index 10a370a..e41852f 100644
      ps5_free(allocator, memory);
      atomic_fetch_sub(&device->memory_allocation_count, 1);
  }
-@@ -1461,13 +1866,18 @@ vkMapMemory(VkDevice device, VkDeviceMemory memory_handle, VkDeviceSize offset,
+@@ -1461,13 +1895,18 @@ vkMapMemory(VkDevice device, VkDeviceMemory memory_handle, VkDeviceSize offset,
      if (!memory || !ppData || offset > memory->size) return VK_ERROR_MEMORY_MAP_FAILED;
      VkDeviceSize available = memory->size - offset;
      if (size != VK_WHOLE_SIZE && size > available) return VK_ERROR_MEMORY_MAP_FAILED;
@@ -4140,7 +4571,7 @@ index 10a370a..e41852f 100644
  }
  
  VK_PS5_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
-@@ -1482,8 +1892,8 @@ vkFlushMappedMemoryRanges(VkDevice device, uint32_t memoryRangeCount,
+@@ -1482,8 +1921,8 @@ vkFlushMappedMemoryRanges(VkDevice device, uint32_t memoryRangeCount,
          VkDeviceSize size = pMemoryRanges[i].size == VK_WHOLE_SIZE ?
              memory->size - pMemoryRanges[i].offset : pMemoryRanges[i].size;
          if (!size || size > memory->size - pMemoryRanges[i].offset ||
@@ -4151,7 +4582,7 @@ index 10a370a..e41852f 100644
              return VK_ERROR_MEMORY_MAP_FAILED;
      }
      return VK_SUCCESS;
-@@ -1501,8 +1911,8 @@ vkInvalidateMappedMemoryRanges(VkDevice device, uint32_t memoryRangeCount,
+@@ -1501,8 +1940,8 @@ vkInvalidateMappedMemoryRanges(VkDevice device, uint32_t memoryRangeCount,
          VkDeviceSize size = pMemoryRanges[i].size == VK_WHOLE_SIZE ?
              memory->size - pMemoryRanges[i].offset : pMemoryRanges[i].size;
          if (!size || size > memory->size - pMemoryRanges[i].offset ||
@@ -4162,7 +4593,7 @@ index 10a370a..e41852f 100644
              return VK_ERROR_MEMORY_MAP_FAILED;
      }
      return VK_SUCCESS;
-@@ -1576,11 +1986,15 @@ static const ProcEntry device_procs[] = {
+@@ -1576,11 +2015,15 @@ static const ProcEntry device_procs[] = {
      ENTRY(vkCreateFence), ENTRY(vkDestroyFence), ENTRY(vkResetFences),
      ENTRY(vkGetFenceStatus), ENTRY(vkWaitForFences),
      ENTRY(vkCreateSemaphore), ENTRY(vkDestroySemaphore),
@@ -4178,7 +4609,7 @@ index 10a370a..e41852f 100644
      ENTRY(vkDestroyImageView), ENTRY(vkCreateBufferView), ENTRY(vkDestroyBufferView),
      ENTRY(vkCreateCommandPool), ENTRY(vkDestroyCommandPool),
      ENTRY(vkResetCommandPool), ENTRY(vkTrimCommandPool),
-@@ -1596,7 +2010,7 @@ static const ProcEntry device_procs[] = {
+@@ -1596,7 +2039,7 @@ static const ProcEntry device_procs[] = {
      ALIAS("vkGetImageSparseMemoryRequirements2KHR", vkGetImageSparseMemoryRequirements2),
      ALIAS("vkTrimCommandPoolKHR", vkTrimCommandPool),
      ENTRY(vkCreateQueryPool), ENTRY(vkDestroyQueryPool), ENTRY(vkGetQueryPoolResults),
@@ -4187,7 +4618,7 @@ index 10a370a..e41852f 100644
      ENTRY(vkCreateShaderModule), ENTRY(vkDestroyShaderModule),
      ENTRY(vkCreatePipelineCache), ENTRY(vkDestroyPipelineCache),
      ENTRY(vkGetPipelineCacheData), ENTRY(vkMergePipelineCaches),
-@@ -1609,6 +2023,8 @@ static const ProcEntry device_procs[] = {
+@@ -1609,6 +2052,8 @@ static const ProcEntry device_procs[] = {
      ENTRY(vkFreeDescriptorSets), ENTRY(vkUpdateDescriptorSets),
      ENTRY(vkCreateFramebuffer), ENTRY(vkDestroyFramebuffer),
      ENTRY(vkCreateRenderPass), ENTRY(vkDestroyRenderPass),
@@ -4196,7 +4627,7 @@ index 10a370a..e41852f 100644
      ENTRY(vkGetRenderAreaGranularity), ENTRY(vkCreateDescriptorUpdateTemplate),
      ENTRY(vkDestroyDescriptorUpdateTemplate), ENTRY(vkUpdateDescriptorSetWithTemplate),
      ENTRY(vkGetDescriptorSetLayoutSupport), ENTRY(vkCreateSamplerYcbcrConversion),
-@@ -1625,17 +2041,40 @@ static const ProcEntry device_procs[] = {
+@@ -1625,17 +2070,40 @@ static const ProcEntry device_procs[] = {
      ENTRY(vkCmdSetLineWidth), ENTRY(vkCmdSetDepthBias), ENTRY(vkCmdSetBlendConstants),
      ENTRY(vkCmdSetDepthBounds), ENTRY(vkCmdSetStencilCompareMask),
      ENTRY(vkCmdSetStencilWriteMask), ENTRY(vkCmdSetStencilReference),
@@ -4252,7 +4683,7 @@ index 0000000..6456e68
 +    *;
 +};
 diff --git a/src/vulkan_ps5_core.c b/src/vulkan_ps5_core.c
-index b10734c..5ec1806 100644
+index b10734c..c3adae6 100644
 --- a/src/vulkan_ps5_core.c
 +++ b/src/vulkan_ps5_core.c
 @@ -3,24 +3,47 @@
@@ -4638,7 +5069,7 @@ index b10734c..5ec1806 100644
      uint32_t stage_count;
      VkPipelineBindPoint bind_point;
      uint32_t primitive_type;
-@@ -173,29 +434,60 @@ typedef struct VkPs5Pipeline {
+@@ -173,29 +434,68 @@ typedef struct VkPs5Pipeline {
      AgcGfx1013PolygonMode polygon_mode;
      AgcGfx1013PrimitiveSizeState primitive_size;
      VkBool32 line_width_dynamic;
@@ -4648,6 +5079,7 @@ index b10734c..5ec1806 100644
      VkBool32 depth_bias_enable;
      VkBool32 depth_bias_dynamic;
      VkBool32 depth_clamp_enable;
++    AgcRasterizationStateFlags native_rasterization_flags;
 +    VkBool32 rasterizer_discard_enable;
 +    AgcCullModeFlags cull_mode;
 +    AgcFrontFace front_face;
@@ -4691,6 +5123,13 @@ index b10734c..5ec1806 100644
 +    return pipeline && pipeline->native_graphics_pipeline ? VK_TRUE : VK_FALSE;
 +}
 +
++AgcRasterizationStateFlags vk_ps5_pipeline_native_rasterization_flags(
++    VkPipeline pipeline_handle)
++{
++    const VkPs5Pipeline *pipeline = (const VkPs5Pipeline *)pipeline_handle;
++    return pipeline ? pipeline->native_rasterization_flags : 0u;
++}
++
  typedef struct VkPs5QueryPool {
      VkQueryType type;
      uint32_t count;
@@ -4709,7 +5148,7 @@ index b10734c..5ec1806 100644
  typedef struct VkPs5DescriptorSet VkPs5DescriptorSet;
  typedef struct VkPs5DescriptorValue {
      VkDescriptorType type;
-@@ -216,12 +508,9 @@ struct VkPs5DescriptorSet {
+@@ -216,12 +516,9 @@ struct VkPs5DescriptorSet {
      VkPs5DescriptorSet *next;
      VkPs5DescriptorSetLayout *layout;
      uint32_t descriptor_count;
@@ -4722,7 +5161,7 @@ index b10734c..5ec1806 100644
  typedef struct VkPs5CommandPool {
      VkDevice device;
      uint32_t queue_family_index;
-@@ -235,6 +524,16 @@ typedef enum VkPs5CommandState {
+@@ -235,6 +532,16 @@ typedef enum VkPs5CommandState {
      VK_PS5_COMMAND_PENDING,
  } VkPs5CommandState;
  
@@ -4739,7 +5178,7 @@ index b10734c..5ec1806 100644
  typedef struct VkPs5CommandBuffer {
      VK_LOADER_DATA loader_data;
      VkDevice device;
-@@ -242,6 +541,11 @@ typedef struct VkPs5CommandBuffer {
+@@ -242,6 +549,11 @@ typedef struct VkPs5CommandBuffer {
      VkCommandBufferLevel level;
      VkPs5CommandState state;
      VkResult record_error;
@@ -4751,7 +5190,7 @@ index b10734c..5ec1806 100644
      VkBool32 compute_defaults_emitted;
      VkPs5Pipeline *bound_compute;
      VkPs5Pipeline *bound_graphics;
-@@ -249,13 +553,19 @@ typedef struct VkPs5CommandBuffer {
+@@ -249,13 +561,19 @@ typedef struct VkPs5CommandBuffer {
      VkPs5DescriptorSet *graphics_sets[OPENAGC_PSBC_MAX_DESCRIPTOR_SETS];
      VkPs5RenderPass *active_render_pass;
      VkPs5Framebuffer *active_framebuffer;
@@ -4773,7 +5212,7 @@ index b10734c..5ec1806 100644
      AgcGfx1013Viewport dynamic_viewports[VK_PS5_MAX_VIEWPORTS];
      AgcGfx1013ScissorState dynamic_scissors[VK_PS5_MAX_VIEWPORTS];
      uint32_t dynamic_viewport_mask;
-@@ -264,53 +574,135 @@ typedef struct VkPs5CommandBuffer {
+@@ -264,53 +582,135 @@ typedef struct VkPs5CommandBuffer {
      uint32_t active_query;
      VkPs5Buffer *index_buffer;
      VkDeviceSize index_offset;
@@ -4838,27 +5277,18 @@ index b10734c..5ec1806 100644
 +    }
 +    command->requires_native_stream = VK_TRUE;
 +    return VK_TRUE;
-+}
-+
-+static void native_mark_stream_incomplete(VkPs5CommandBuffer *command)
-+{
-+    command->native_stream_complete = VK_FALSE;
-+    if (command->requires_native_stream &&
-+        command->record_error == VK_SUCCESS)
-+        command->record_error = VK_ERROR_FEATURE_NOT_PRESENT;
  }
  
 -uint32_t vk_ps5_command_buffer_indirect_descriptor_table(
 -    VkCommandBuffer command_buffer) {
 -    VkPs5CommandBuffer *command = (VkPs5CommandBuffer *)command_buffer;
 -    return command ? command->last_indirect_descriptor_table : 0u;
-+VkBool32 vk_ps5_command_buffer_has_native(
-+    VkCommandBuffer command_buffer)
++static void native_mark_stream_incomplete(VkPs5CommandBuffer *command)
 +{
-+    const VkPs5CommandBuffer *command =
-+        (const VkPs5CommandBuffer *)command_buffer;
-+    return command && command->native_graphics_command_buffer &&
-+        command->native_compute_command_buffer ? VK_TRUE : VK_FALSE;
++    command->native_stream_complete = VK_FALSE;
++    if (command->requires_native_stream &&
++        command->record_error == VK_SUCCESS)
++        command->record_error = VK_ERROR_FEATURE_NOT_PRESENT;
  }
  
 -uint32_t vk_ps5_command_buffer_indirect_descriptor_entry(
@@ -4874,6 +5304,15 @@ index b10734c..5ec1806 100644
 -    const uint32_t *entries = (const uint32_t *)(
 -        (const uint8_t *)command->vertex_table_memory.cpu_address + offset);
 -    return entries[set];
++VkBool32 vk_ps5_command_buffer_has_native(
++    VkCommandBuffer command_buffer)
++{
++    const VkPs5CommandBuffer *command =
++        (const VkPs5CommandBuffer *)command_buffer;
++    return command && command->native_graphics_command_buffer &&
++        command->native_compute_command_buffer ? VK_TRUE : VK_FALSE;
++}
++
 +uint32_t vk_ps5_command_buffer_native_state(
 +    VkCommandBuffer command_buffer)
 +{
@@ -4913,19 +5352,19 @@ index b10734c..5ec1806 100644
 +    const VkPs5CommandBuffer *command =
 +        (const VkPs5CommandBuffer *)command_buffer;
 +    return command ? command->native_stream_complete : VK_FALSE;
-+}
-+
-+VkResult vk_ps5_command_buffer_record_error(VkCommandBuffer command_buffer)
-+{
-+    const VkPs5CommandBuffer *command =
-+        (const VkPs5CommandBuffer *)command_buffer;
-+    return command ? command->record_error : VK_ERROR_INITIALIZATION_FAILED;
  }
  
 -uint32_t vk_ps5_command_buffer_indirect_descriptor_register(
 -    VkCommandBuffer command_buffer) {
 -    VkPs5CommandBuffer *command = (VkPs5CommandBuffer *)command_buffer;
 -    return command ? command->last_indirect_descriptor_register : 0u;
++VkResult vk_ps5_command_buffer_record_error(VkCommandBuffer command_buffer)
++{
++    const VkPs5CommandBuffer *command =
++        (const VkPs5CommandBuffer *)command_buffer;
++    return command ? command->record_error : VK_ERROR_INITIALIZATION_FAILED;
++}
++
 +VkBool32 vk_ps5_command_buffer_push_constant_word(
 +    VkCommandBuffer command_buffer, uint32_t stage, uint32_t offset,
 +    uint32_t *value)
@@ -4944,7 +5383,7 @@ index b10734c..5ec1806 100644
  }
  
  static void *alloc_object(VkDevice device, const VkAllocationCallbacks *allocator,
-@@ -337,26 +729,89 @@ vkQueueSubmit(VkQueue queue, uint32_t submitCount, const VkSubmitInfo *pSubmits,
+@@ -337,26 +737,89 @@ vkQueueSubmit(VkQueue queue, uint32_t submitCount, const VkSubmitInfo *pSubmits,
      for (uint32_t i = 0; i < submitCount; ++i) {
          if (pSubmits[i].sType != VK_STRUCTURE_TYPE_SUBMIT_INFO)
              return VK_ERROR_INITIALIZATION_FAILED;
@@ -5041,7 +5480,7 @@ index b10734c..5ec1806 100644
          }
      }
      if (fence_handle) atomic_store(&((VkPs5Fence *)fence_handle)->signaled, true);
-@@ -428,12 +883,32 @@ VK_PS5_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
+@@ -428,12 +891,32 @@ VK_PS5_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
  vkCreateSemaphore(VkDevice device, const VkSemaphoreCreateInfo *pCreateInfo,
                    const VkAllocationCallbacks *pAllocator, VkSemaphore *pSemaphore) {
      if (!device || !pCreateInfo || !pSemaphore ||
@@ -5075,7 +5514,7 @@ index b10734c..5ec1806 100644
      *pSemaphore = (VkSemaphore)semaphore;
      return VK_SUCCESS;
  }
-@@ -444,6 +919,80 @@ vkDestroySemaphore(VkDevice device, VkSemaphore semaphore,
+@@ -444,6 +927,80 @@ vkDestroySemaphore(VkDevice device, VkSemaphore semaphore,
      if (semaphore) vk_ps5_device_free(device, pAllocator, (void *)semaphore);
  }
  
@@ -5156,7 +5595,7 @@ index b10734c..5ec1806 100644
  VK_PS5_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
  vkCreateEvent(VkDevice device, const VkEventCreateInfo *pCreateInfo,
                const VkAllocationCallbacks *pAllocator, VkEvent *pEvent) {
-@@ -512,7 +1061,13 @@ vkCreateBuffer(VkDevice device, const VkBufferCreateInfo *pCreateInfo,
+@@ -512,7 +1069,13 @@ vkCreateBuffer(VkDevice device, const VkBufferCreateInfo *pCreateInfo,
  
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkDestroyBuffer(VkDevice device, VkBuffer buffer, const VkAllocationCallbacks *pAllocator) {
@@ -5171,7 +5610,7 @@ index b10734c..5ec1806 100644
  }
  
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
-@@ -521,33 +1076,69 @@ vkGetBufferMemoryRequirements(VkDevice device, VkBuffer buffer_handle,
+@@ -521,33 +1084,69 @@ vkGetBufferMemoryRequirements(VkDevice device, VkBuffer buffer_handle,
      (void)device;
      if (!buffer_handle || !pMemoryRequirements) return;
      VkPs5Buffer *buffer = (VkPs5Buffer *)buffer_handle;
@@ -5245,7 +5684,7 @@ index b10734c..5ec1806 100644
      case VK_FORMAT_R16G16_SFLOAT: case VK_FORMAT_R32_SFLOAT:
      case VK_FORMAT_B10G11R11_UFLOAT_PACK32: case VK_FORMAT_D32_SFLOAT:
      case VK_FORMAT_D16_UNORM_S8_UINT: return 4;
-@@ -567,6 +1158,7 @@ static bool color_target_format(
+@@ -567,6 +1166,7 @@ static bool color_target_format(
      case VK_FORMAT_R8G8_UNORM:
          *target_format = AGC_GFX1013_RT_FORMAT_RG8_UNORM; break;
      case VK_FORMAT_R8G8B8A8_UNORM:
@@ -5253,7 +5692,7 @@ index b10734c..5ec1806 100644
          *target_format = AGC_GFX1013_RT_FORMAT_RGBA8_UNORM; break;
      case VK_FORMAT_B8G8R8A8_UNORM:
          *target_format = AGC_GFX1013_RT_FORMAT_BGRA8_UNORM; break;
-@@ -587,6 +1179,7 @@ static bool color_target_format(
+@@ -587,6 +1187,7 @@ static bool color_target_format(
      case VK_FORMAT_B10G11R11_UFLOAT_PACK32:
          *target_format = AGC_GFX1013_RT_FORMAT_R11G11B10_FLOAT; break;
      case VK_FORMAT_R8G8B8A8_SRGB:
@@ -5261,7 +5700,7 @@ index b10734c..5ec1806 100644
          *target_format = AGC_GFX1013_RT_FORMAT_RGBA8_SRGB; break;
      case VK_FORMAT_B8G8R8A8_SRGB:
          *target_format = AGC_GFX1013_RT_FORMAT_BGRA8_SRGB; break;
-@@ -795,6 +1388,24 @@ static bool primitive_topology(
+@@ -795,6 +1396,24 @@ static bool primitive_topology(
      case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST:
          *destination = AGC_GFX1013_TOPOLOGY_TRIANGLE_LIST;
          break;
@@ -5286,7 +5725,7 @@ index b10734c..5ec1806 100644
      case VK_PRIMITIVE_TOPOLOGY_PATCH_LIST:
          *destination = AGC_GFX1013_TOPOLOGY_PATCH_LIST;
          break;
-@@ -987,6 +1598,26 @@ static bool layout_resource_usage(
+@@ -987,6 +1606,26 @@ static bool layout_resource_usage(
      return true;
  }
  
@@ -5313,7 +5752,7 @@ index b10734c..5ec1806 100644
  VK_PS5_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
  vkCreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
                const VkAllocationCallbacks *pAllocator, VkImage *pImage) {
-@@ -1004,13 +1635,33 @@ vkCreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
+@@ -1004,13 +1643,33 @@ vkCreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
          (pCreateInfo->flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
                                 VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT |
                                 VK_IMAGE_CREATE_SPARSE_ALIASED_BIT |
@@ -5349,7 +5788,7 @@ index b10734c..5ec1806 100644
      if (pCreateInfo->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) {
          if (pCreateInfo->imageType != VK_IMAGE_TYPE_2D ||
              pCreateInfo->extent.width != pCreateInfo->extent.height ||
-@@ -1026,6 +1677,7 @@ vkCreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
+@@ -1026,6 +1685,7 @@ vkCreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
      VkPs5Image *image = alloc_object(device, pAllocator, sizeof(*image),
                                       _Alignof(VkPs5Image));
      if (!image) return VK_ERROR_OUT_OF_HOST_MEMORY;
@@ -5357,7 +5796,7 @@ index b10734c..5ec1806 100644
      image->flags = pCreateInfo->flags;
      image->type = pCreateInfo->imageType;
      image->format = pCreateInfo->format;
-@@ -1054,24 +1706,12 @@ vkCreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
+@@ -1054,24 +1714,12 @@ vkCreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
              vk_ps5_device_free(device, pAllocator, image);
              return VK_ERROR_FORMAT_NOT_SUPPORTED;
          }
@@ -5386,7 +5825,7 @@ index b10734c..5ec1806 100644
          *pImage = (VkImage)image;
          return VK_SUCCESS;
      }
-@@ -1081,49 +1721,12 @@ vkCreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
+@@ -1081,49 +1729,12 @@ vkCreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
              vk_ps5_device_free(device, pAllocator, image);
              return VK_ERROR_FORMAT_NOT_SUPPORTED;
          }
@@ -5440,7 +5879,7 @@ index b10734c..5ec1806 100644
          *pImage = (VkImage)image;
          return VK_SUCCESS;
      }
-@@ -1154,13 +1757,27 @@ vkCreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
+@@ -1154,13 +1765,27 @@ vkCreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
          return VK_ERROR_OUT_OF_DEVICE_MEMORY;
      }
      image->size = image->array_pitch * image->array_layers;
@@ -5469,7 +5908,7 @@ index b10734c..5ec1806 100644
  }
  
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
-@@ -1186,12 +1803,35 @@ vkGetImageSparseMemoryRequirements(VkDevice device, VkImage image,
+@@ -1186,12 +1811,35 @@ vkGetImageSparseMemoryRequirements(VkDevice device, VkImage image,
  VK_PS5_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
  vkBindImageMemory(VkDevice device, VkImage image_handle, VkDeviceMemory memory,
                    VkDeviceSize memoryOffset) {
@@ -5507,7 +5946,7 @@ index b10734c..5ec1806 100644
      image->memory = memory;
      image->memory_offset = memoryOffset;
      return VK_SUCCESS;
-@@ -1211,6 +1851,37 @@ vkGetImageSubresourceLayout(VkDevice device, VkImage image_handle,
+@@ -1211,6 +1859,37 @@ vkGetImageSubresourceLayout(VkDevice device, VkImage image_handle,
      pLayout->depthPitch = image->depth_pitch;
  }
  
@@ -5545,7 +5984,7 @@ index b10734c..5ec1806 100644
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkGetDeviceMemoryCommitment(VkDevice device, VkDeviceMemory memory,
                              VkDeviceSize *pCommittedMemoryInBytes) {
-@@ -1243,10 +1914,17 @@ vkDestroyCommandPool(VkDevice device, VkCommandPool commandPool,
+@@ -1243,10 +1922,17 @@ vkDestroyCommandPool(VkDevice device, VkCommandPool commandPool,
      while (pool->buffers) {
          VkPs5CommandBuffer *command = pool->buffers;
          pool->buffers = command->next;
@@ -5565,7 +6004,7 @@ index b10734c..5ec1806 100644
      vk_ps5_device_free(device, pAllocator, pool);
  }
  
-@@ -1257,22 +1935,44 @@ vkResetCommandPool(VkDevice device, VkCommandPool commandPool,
+@@ -1257,22 +1943,44 @@ vkResetCommandPool(VkDevice device, VkCommandPool commandPool,
      VkPs5CommandPool *pool = (VkPs5CommandPool *)commandPool;
      if (!pool) return VK_ERROR_INITIALIZATION_FAILED;
      for (VkPs5CommandBuffer *command = pool->buffers; command; command = command->next) {
@@ -5616,7 +6055,7 @@ index b10734c..5ec1806 100644
      return VK_SUCCESS;
  }
  
-@@ -1303,29 +2003,38 @@ vkAllocateCommandBuffers(VkDevice device, const VkCommandBufferAllocateInfo *pAl
+@@ -1303,29 +2011,38 @@ vkAllocateCommandBuffers(VkDevice device, const VkCommandBufferAllocateInfo *pAl
          command->pool = pAllocateInfo->commandPool;
          command->level = pAllocateInfo->level;
          command->state = VK_PS5_COMMAND_INITIAL;
@@ -5670,7 +6109,7 @@ index b10734c..5ec1806 100644
              vk_ps5_device_free(device, NULL, command);
              vkFreeCommandBuffers(device, pAllocateInfo->commandPool, i, pCommandBuffers);
              return result;
-@@ -1349,11 +2058,18 @@ vkFreeCommandBuffers(VkDevice device, VkCommandPool commandPool,
+@@ -1349,11 +2066,18 @@ vkFreeCommandBuffers(VkDevice device, VkCommandPool commandPool,
          while (*link && *link != command) link = &(*link)->next;
          if (*link) {
              *link = command->next;
@@ -5691,7 +6130,7 @@ index b10734c..5ec1806 100644
  }
  
  VK_PS5_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
-@@ -1364,27 +2080,62 @@ vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
+@@ -1364,27 +2088,62 @@ vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
          pBeginInfo->sType != VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO ||
          command->state == VK_PS5_COMMAND_RECORDING || command->state == VK_PS5_COMMAND_PENDING)
          return VK_ERROR_INITIALIZATION_FAILED;
@@ -5759,7 +6198,7 @@ index b10734c..5ec1806 100644
      return VK_SUCCESS;
  }
  
-@@ -1394,12 +2145,49 @@ vkEndCommandBuffer(VkCommandBuffer commandBuffer) {
+@@ -1394,12 +2153,49 @@ vkEndCommandBuffer(VkCommandBuffer commandBuffer) {
      if (!command || command->state != VK_PS5_COMMAND_RECORDING)
          return VK_ERROR_INITIALIZATION_FAILED;
      if (command->record_error != VK_SUCCESS || command->active_render_pass ||
@@ -5811,7 +6250,7 @@ index b10734c..5ec1806 100644
      command->state = VK_PS5_COMMAND_EXECUTABLE;
      return VK_SUCCESS;
  }
-@@ -1410,27 +2198,52 @@ vkResetCommandBuffer(VkCommandBuffer commandBuffer, VkCommandBufferResetFlags fl
+@@ -1410,27 +2206,52 @@ vkResetCommandBuffer(VkCommandBuffer commandBuffer, VkCommandBufferResetFlags fl
      VkPs5CommandBuffer *command = (VkPs5CommandBuffer *)commandBuffer;
      if (!command || command->state == VK_PS5_COMMAND_PENDING)
          return VK_ERROR_INITIALIZATION_FAILED;
@@ -5869,7 +6308,7 @@ index b10734c..5ec1806 100644
      return VK_SUCCESS;
  }
  
-@@ -1459,7 +2272,9 @@ vkCreateImageView(VkDevice device, const VkImageViewCreateInfo *pCreateInfo,
+@@ -1459,7 +2280,9 @@ vkCreateImageView(VkDevice device, const VkImageViewCreateInfo *pCreateInfo,
          VK_REMAINING_ARRAY_LAYERS ?
          image->array_layers - pCreateInfo->subresourceRange.baseArrayLayer :
          pCreateInfo->subresourceRange.layerCount;
@@ -5880,7 +6319,7 @@ index b10734c..5ec1806 100644
          !pCreateInfo->subresourceRange.aspectMask ||
          (pCreateInfo->subresourceRange.aspectMask & ~valid_aspects) ||
          pCreateInfo->subresourceRange.baseMipLevel != 0u ||
-@@ -1500,6 +2315,11 @@ vkCreateImageView(VkDevice device, const VkImageViewCreateInfo *pCreateInfo,
+@@ -1500,6 +2323,11 @@ vkCreateImageView(VkDevice device, const VkImageViewCreateInfo *pCreateInfo,
      view->components = pCreateInfo->components;
      view->base_array_layer = pCreateInfo->subresourceRange.baseArrayLayer;
      view->layer_count = layer_count;
@@ -5892,7 +6331,7 @@ index b10734c..5ec1806 100644
      *pView = (VkImageView)view;
      return VK_SUCCESS;
  }
-@@ -1507,7 +2327,13 @@ vkCreateImageView(VkDevice device, const VkImageViewCreateInfo *pCreateInfo,
+@@ -1507,7 +2335,13 @@ vkCreateImageView(VkDevice device, const VkImageViewCreateInfo *pCreateInfo,
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkDestroyImageView(VkDevice device, VkImageView imageView,
                     const VkAllocationCallbacks *pAllocator) {
@@ -5907,7 +6346,7 @@ index b10734c..5ec1806 100644
  }
  
  VK_PS5_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
-@@ -1652,24 +2478,46 @@ vkCreateQueryPool(VkDevice device, const VkQueryPoolCreateInfo *pCreateInfo,
+@@ -1652,24 +2486,46 @@ vkCreateQueryPool(VkDevice device, const VkQueryPoolCreateInfo *pCreateInfo,
          return VK_ERROR_INITIALIZATION_FAILED;
      if (pCreateInfo->queryType != VK_QUERY_TYPE_OCCLUSION)
          return VK_ERROR_FEATURE_NOT_PRESENT;
@@ -5963,7 +6402,7 @@ index b10734c..5ec1806 100644
      }
      *pQueryPool = (VkQueryPool)pool;
      return VK_SUCCESS;
-@@ -1680,7 +2528,9 @@ vkDestroyQueryPool(VkDevice device, VkQueryPool queryPool,
+@@ -1680,7 +2536,9 @@ vkDestroyQueryPool(VkDevice device, VkQueryPool queryPool,
                     const VkAllocationCallbacks *pAllocator) {
      if (queryPool) {
          VkPs5QueryPool *pool = (VkPs5QueryPool *)queryPool;
@@ -5974,7 +6413,7 @@ index b10734c..5ec1806 100644
          vk_ps5_device_free(device, pAllocator, pool);
      }
  }
-@@ -1693,11 +2543,15 @@ vkResetQueryPoolEXT(VkDevice device, VkQueryPool queryPool_handle,
+@@ -1693,11 +2551,15 @@ vkResetQueryPoolEXT(VkDevice device, VkQueryPool queryPool_handle,
      if (!pool || firstQuery > pool->count ||
          queryCount > pool->count - firstQuery)
          return;
@@ -5995,7 +6434,7 @@ index b10734c..5ec1806 100644
  }
  
  VK_PS5_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
-@@ -1716,31 +2570,19 @@ vkGetQueryPoolResults(VkDevice device, VkQueryPool queryPool_handle, uint32_t fi
+@@ -1716,31 +2578,19 @@ vkGetQueryPoolResults(VkDevice device, VkQueryPool queryPool_handle, uint32_t fi
          return VK_ERROR_INITIALIZATION_FAILED;
      VkResult result = VK_SUCCESS;
      for (uint32_t i = 0; i < queryCount; ++i) {
@@ -6039,7 +6478,7 @@ index b10734c..5ec1806 100644
          uint8_t *dst = (uint8_t *)pData + (size_t)i * (size_t)stride;
          if (available || (flags & VK_QUERY_RESULT_PARTIAL_BIT)) {
              if (flags & VK_QUERY_RESULT_64_BIT)
-@@ -1941,25 +2783,87 @@ static VkResult psbc_result(OpenAgcPsbcResult result) {
+@@ -1941,22 +2791,84 @@ static VkResult psbc_result(OpenAgcPsbcResult result) {
      }
  }
  
@@ -6059,9 +6498,6 @@ index b10734c..5ec1806 100644
 -        (source->mapEntryCount && !source->pMapEntries) ||
 -        (source->dataSize && !source->pData))
 -        return VK_ERROR_INITIALIZATION_FAILED;
--    dest->count = source->mapEntryCount;
--    dest->data = source->pData;
--    dest->data_size = source->dataSize;
 +static bool native_blend_factor(VkBlendFactor source, AgcBlendFactor *dest)
 +{
 +    switch (source) {
@@ -6140,13 +6576,10 @@ index b10734c..5ec1806 100644
 +        (source->mapEntryCount && !source->pMapEntries) ||
 +        (source->dataSize && !source->pData))
 +        return VK_ERROR_INITIALIZATION_FAILED;
-+    dest->count = source->mapEntryCount;
-+    dest->data = source->pData;
-+    dest->data_size = source->dataSize;
-     for (uint32_t i = 0; i < dest->count; ++i) {
-         dest->constants[i].constant_id = source->pMapEntries[i].constantID;
-         dest->constants[i].offset = source->pMapEntries[i].offset;
-@@ -1976,6 +2880,13 @@ static VkResult compile_stage(const VkPipelineShaderStageCreateInfo *stage,
+     dest->count = source->mapEntryCount;
+     dest->data = source->pData;
+     dest->data_size = source->dataSize;
+@@ -1976,6 +2888,13 @@ static VkResult compile_stage(const VkPipelineShaderStageCreateInfo *stage,
                                OpenAgcPsbcStage psbc_interface_stage,
                                const OpenAgcPsbcPipelineContext *context,
                                OpenAgcPsbcOutput *output) {
@@ -6160,7 +6593,7 @@ index b10734c..5ec1806 100644
      if (!stage || stage->sType != VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO ||
          !stage->module || !stage->pName)
          return VK_ERROR_INITIALIZATION_FAILED;
-@@ -2039,50 +2950,29 @@ static VkResult compile_stage(const VkPipelineShaderStageCreateInfo *stage,
+@@ -2039,50 +2958,29 @@ static VkResult compile_stage(const VkPipelineShaderStageCreateInfo *stage,
          .pipeline = context,
          .optimize = true,
      };
@@ -6228,7 +6661,7 @@ index b10734c..5ec1806 100644
          openagcPsbcFreeOutput(&pipeline->stages[i]);
      }
      vk_ps5_device_free(device, allocator, pipeline);
-@@ -2091,68 +2981,24 @@ static void free_pipeline(VkDevice device, const VkAllocationCallbacks *allocato
+@@ -2091,68 +2989,24 @@ static void free_pipeline(VkDevice device, const VkAllocationCallbacks *allocato
  static VkResult finalize_runtime_shader(
      VkDevice device, const VkAllocationCallbacks *allocator,
      OpenAgcPsbcOutput *output, VkPs5RuntimeShader *runtime) {
@@ -6313,7 +6746,7 @@ index b10734c..5ec1806 100644
      return VK_SUCCESS;
  }
  
-@@ -2195,6 +3041,9 @@ vkCreateComputePipelines(VkDevice device, VkPipelineCache pipelineCache,
+@@ -2195,6 +3049,9 @@ vkCreateComputePipelines(VkDevice device, VkPipelineCache pipelineCache,
                                          NULL, OPENAGC_PSBC_STAGE_VERTEX,
                                          &context, &pipeline->stages[0]);
          if (result != VK_SUCCESS) {
@@ -6323,7 +6756,7 @@ index b10734c..5ec1806 100644
              free_pipeline(device, pAllocator, pipeline);
              return result;
          }
-@@ -2206,6 +3055,30 @@ vkCreateComputePipelines(VkDevice device, VkPipelineCache pipelineCache,
+@@ -2206,6 +3063,30 @@ vkCreateComputePipelines(VkDevice device, VkPipelineCache pipelineCache,
              free_pipeline(device, pAllocator, pipeline);
              return result;
          }
@@ -6354,7 +6787,7 @@ index b10734c..5ec1806 100644
          pPipelines[i] = (VkPipeline)pipeline;
      }
      return VK_SUCCESS;
-@@ -2222,17 +3095,48 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
+@@ -2222,17 +3103,48 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
      for (uint32_t i = 0; i < createInfoCount; ++i) pPipelines[i] = VK_NULL_HANDLE;
      for (uint32_t i = 0; i < createInfoCount; ++i) {
          const VkGraphicsPipelineCreateInfo *create = &pCreateInfos[i];
@@ -6406,7 +6839,7 @@ index b10734c..5ec1806 100644
          VkBool32 dynamic_viewport = VK_FALSE;
          VkBool32 dynamic_scissor = VK_FALSE;
          if (create->pDynamicState) {
-@@ -2253,6 +3157,16 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
+@@ -2253,6 +3165,16 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
                          return VK_ERROR_FEATURE_NOT_PRESENT;
                      dynamic_line_width = VK_TRUE;
                      break;
@@ -6423,18 +6856,29 @@ index b10734c..5ec1806 100644
                  case VK_DYNAMIC_STATE_VIEWPORT:
                      if (dynamic_viewport)
                          return VK_ERROR_FEATURE_NOT_PRESENT;
-@@ -2287,10 +3201,28 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
+@@ -2287,10 +3209,43 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
              create->pMultisampleState;
          const VkPipelineColorBlendStateCreateInfo *blend =
              create->pColorBlendState;
 +        const VkPipelineRasterizationLineStateCreateInfo *line_state = NULL;
++        const VkPipelineRasterizationDepthClipStateCreateInfoEXT *
++            depth_clip_state = NULL;
 +        for (const VkBaseInStructure *next =
 +                 (const VkBaseInStructure *)raster->pNext;
 +             next; next = next->pNext) {
 +            if (next->sType ==
-+                VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_LINE_STATE_CREATE_INFO)
++                VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_LINE_STATE_CREATE_INFO) {
++                if (line_state)
++                    return VK_ERROR_INITIALIZATION_FAILED;
 +                line_state =
 +                    (const VkPipelineRasterizationLineStateCreateInfo *)next;
++            } else if (next->sType ==
++                    VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT) {
++                if (depth_clip_state)
++                    return VK_ERROR_INITIALIZATION_FAILED;
++                depth_clip_state =
++                    (const VkPipelineRasterizationDepthClipStateCreateInfoEXT *)next;
++            }
 +        }
 +        if (line_state &&
 +            ((line_state->lineRasterizationMode !=
@@ -6442,6 +6886,10 @@ index b10734c..5ec1806 100644
 +              line_state->lineRasterizationMode !=
 +                  VK_LINE_RASTERIZATION_MODE_RECTANGULAR) ||
 +             line_state->stippledLineEnable))
++            return VK_ERROR_FEATURE_NOT_PRESENT;
++        if (depth_clip_state &&
++            (!vk_ps5_device_depth_clip_enable(device) ||
++             depth_clip_state->flags != 0u))
 +            return VK_ERROR_FEATURE_NOT_PRESENT;
          AgcGfx1013PolygonMode translated_polygon_mode;
 -        if (raster->rasterizerDiscardEnable ||
@@ -6455,7 +6903,7 @@ index b10734c..5ec1806 100644
              (!dynamic_line_width && (!(raster->lineWidth >= 1.0f) ||
                  !(raster->lineWidth <= 64.0f))) ||
              (multisample->rasterizationSamples != VK_SAMPLE_COUNT_1_BIT &&
-@@ -2299,7 +3231,6 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
+@@ -2299,7 +3254,6 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
               (!(multisample->minSampleShading >= 0.0f) ||
                !(multisample->minSampleShading <= 1.0f))) ||
              multisample->alphaToCoverageEnable ||
@@ -6463,7 +6911,7 @@ index b10734c..5ec1806 100644
              !blend->attachmentCount ||
              blend->attachmentCount > AGC_GFX1013_MAX_COLOR_TARGETS ||
              !blend->pAttachments)
-@@ -2440,21 +3371,57 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
+@@ -2440,21 +3394,57 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
          }
          const VkPs5PipelineLayout *layout = (const VkPs5PipelineLayout *)create->layout;
          const VkPs5RenderPass *render_pass = (const VkPs5RenderPass *)create->renderPass;
@@ -6530,7 +6978,7 @@ index b10734c..5ec1806 100644
          if (has_depth_stencil) {
              const VkPipelineDepthStencilStateCreateInfo *depth =
                  create->pDepthStencilState;
-@@ -2475,8 +3442,7 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
+@@ -2475,8 +3465,7 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
              depth_stencil.max_depth_bounds = depth->maxDepthBounds;
              depth_stencil.stencil_test_enable = depth->stencilTestEnable;
              depth_stencil.back_face_enable = depth->stencilTestEnable;
@@ -6540,7 +6988,7 @@ index b10734c..5ec1806 100644
                  (depth->depthWriteEnable ||
                   (depth->stencilTestEnable &&
                    (depth->front.writeMask || depth->back.writeMask))))
-@@ -2494,6 +3460,7 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
+@@ -2494,6 +3483,7 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
                  (uint32_t)multisample->rasterizationSamples,
              .pixel_shader_sample_count = 1u,
              .dual_source_blend = dual_source_blend,
@@ -6548,7 +6996,7 @@ index b10734c..5ec1806 100644
              .tessellation_control_points = tess_control ?
                  create->pTessellationState->patchControlPoints : 3,
              .tessellation_patches = 8,
-@@ -2543,6 +3510,8 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
+@@ -2543,6 +3533,8 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
              .line_width = dynamic_line_width ? 1.0f : raster->lineWidth,
          };
          pipeline->line_width_dynamic = dynamic_line_width;
@@ -6557,10 +7005,14 @@ index b10734c..5ec1806 100644
          pipeline->depth_bias = (AgcGfx1013DepthBiasState){
              .constant_factor = raster->depthBiasConstantFactor,
              .clamp = raster->depthBiasClamp,
-@@ -2551,8 +3520,28 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
+@@ -2551,8 +3543,32 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
          pipeline->depth_bias_enable = raster->depthBiasEnable;
          pipeline->depth_bias_dynamic = dynamic_depth_bias;
          pipeline->depth_clamp_enable = raster->depthClampEnable;
++        pipeline->native_rasterization_flags = depth_clip_state ?
++            (depth_clip_state->depthClipEnable ?
++                AGC_RASTERIZATION_DEPTH_CLIP_ENABLE_BIT :
++                AGC_RASTERIZATION_DEPTH_CLIP_DISABLE_BIT) : 0u;
 +        pipeline->rasterizer_discard_enable =
 +            raster->rasterizerDiscardEnable;
 +        pipeline->cull_mode = (AgcCullModeFlags)raster->cullMode;
@@ -6586,7 +7038,7 @@ index b10734c..5ec1806 100644
          memcpy(pipeline->vertex_strides, vertex_strides,
                 sizeof(vertex_strides));
          VkResult result = VK_SUCCESS;
-@@ -2622,6 +3611,9 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
+@@ -2622,6 +3638,9 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
              }
          }
          if (result != VK_SUCCESS) {
@@ -6596,7 +7048,7 @@ index b10734c..5ec1806 100644
              free_pipeline(device, pAllocator, pipeline);
              return result;
          }
-@@ -2635,27 +3627,295 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
+@@ -2635,27 +3654,296 @@ vkCreateGraphicsPipelines(VkDevice device, VkPipelineCache pipelineCache,
                      pipeline->stages[stage_index].metadata.
                          pixel_shader_sample_count;
          }
@@ -6796,6 +7248,7 @@ index b10734c..5ec1806 100644
 +                    VK_FRONT_FACE_CLOCKWISE ? AGC_FRONT_FACE_CLOCKWISE :
 +                    AGC_FRONT_FACE_COUNTER_CLOCKWISE;
 +            native_raster.depth_clamp_enable = raster->depthClampEnable;
++            native_raster.flags = pipeline->native_rasterization_flags;
 +            native_raster.rasterizer_discard_enable =
 +                raster->rasterizerDiscardEnable;
 +            native_raster.depth_bias_enable = raster->depthBiasEnable;
@@ -6906,7 +7359,7 @@ index b10734c..5ec1806 100644
          pPipelines[i] = (VkPipeline)pipeline;
      }
      return VK_SUCCESS;
-@@ -2685,20 +3945,63 @@ name(VkDevice device, HandleType object, const VkAllocationCallbacks *pAllocator
+@@ -2685,20 +3973,63 @@ name(VkDevice device, HandleType object, const VkAllocationCallbacks *pAllocator
      if (object) vk_ps5_device_free(device, pAllocator, (void *)object); \
  }
  
@@ -6978,7 +7431,7 @@ index b10734c..5ec1806 100644
  }
  
  VK_PS5_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
-@@ -2708,7 +4011,20 @@ vkCreateSampler(VkDevice device, const VkSamplerCreateInfo *pCreateInfo,
+@@ -2708,7 +4039,20 @@ vkCreateSampler(VkDevice device, const VkSamplerCreateInfo *pCreateInfo,
      if (!device || !pCreateInfo || !pSampler ||
          pCreateInfo->sType != VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO)
          return VK_ERROR_INITIALIZATION_FAILED;
@@ -7000,7 +7453,7 @@ index b10734c..5ec1806 100644
          pCreateInfo->unnormalizedCoordinates ||
          pCreateInfo->minLod < 0.0f || pCreateInfo->maxLod < pCreateInfo->minLod)
          return VK_ERROR_FEATURE_NOT_PRESENT;
-@@ -2716,66 +4032,44 @@ vkCreateSampler(VkDevice device, const VkSamplerCreateInfo *pCreateInfo,
+@@ -2716,66 +4060,44 @@ vkCreateSampler(VkDevice device, const VkSamplerCreateInfo *pCreateInfo,
          (!(pCreateInfo->maxAnisotropy >= 1.0f) ||
           pCreateInfo->maxAnisotropy > 16.0f))
          return VK_ERROR_FEATURE_NOT_PRESENT;
@@ -7090,7 +7543,7 @@ index b10734c..5ec1806 100644
      *pSampler = (VkSampler)sampler;
      return VK_SUCCESS;
  }
-@@ -2784,11 +4078,98 @@ VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
+@@ -2784,11 +4106,98 @@ VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkDestroySampler(VkDevice device, VkSampler sampler,
                   const VkAllocationCallbacks *pAllocator)
  {
@@ -7193,7 +7646,7 @@ index b10734c..5ec1806 100644
  
  VK_PS5_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
  vkCreateFramebuffer(VkDevice device, const VkFramebufferCreateInfo *pCreateInfo,
-@@ -3036,6 +4417,108 @@ vkCreateRenderPass(VkDevice device, const VkRenderPassCreateInfo *pCreateInfo,
+@@ -3036,6 +4445,108 @@ vkCreateRenderPass(VkDevice device, const VkRenderPassCreateInfo *pCreateInfo,
      return VK_SUCCESS;
  }
  
@@ -7302,7 +7755,7 @@ index b10734c..5ec1806 100644
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkDestroyRenderPass(VkDevice device, VkRenderPass renderPass,
                      const VkAllocationCallbacks *pAllocator) {
-@@ -3061,7 +4544,6 @@ static void clear_descriptor_pool(VkPs5DescriptorPool *pool) {
+@@ -3061,7 +4572,6 @@ static void clear_descriptor_pool(VkPs5DescriptorPool *pool) {
      VkPs5DescriptorSet *set = pool->sets;
      while (set) {
          VkPs5DescriptorSet *next = set->next;
@@ -7310,7 +7763,7 @@ index b10734c..5ec1806 100644
          vk_ps5_device_free(pool->device, NULL, set);
          set = next;
      }
-@@ -3122,7 +4604,6 @@ vkAllocateDescriptorSets(VkDevice device,
+@@ -3122,7 +4632,6 @@ vkAllocateDescriptorSets(VkDevice device,
              while (pool->sets != old_head) {
                  VkPs5DescriptorSet *rollback = pool->sets;
                  pool->sets = rollback->next;
@@ -7318,7 +7771,7 @@ index b10734c..5ec1806 100644
                  vk_ps5_device_free(device, NULL, rollback);
              }
              pool->allocated_sets = old_count;
-@@ -3132,21 +4613,6 @@ vkAllocateDescriptorSets(VkDevice device,
+@@ -3132,21 +4641,6 @@ vkAllocateDescriptorSets(VkDevice device,
          }
          set->layout = layout;
          set->descriptor_count = descriptor_count;
@@ -7340,7 +7793,7 @@ index b10734c..5ec1806 100644
          set->pool = pool;
          set->next = pool->sets;
          pool->sets = set;
-@@ -3159,7 +4625,6 @@ invalid_layout:
+@@ -3159,7 +4653,6 @@ invalid_layout:
      while (pool->sets != old_head) {
          VkPs5DescriptorSet *rollback = pool->sets;
          pool->sets = rollback->next;
@@ -7348,7 +7801,7 @@ index b10734c..5ec1806 100644
          vk_ps5_device_free(device, NULL, rollback);
      }
      pool->allocated_sets = old_count;
-@@ -3182,7 +4647,6 @@ vkFreeDescriptorSets(VkDevice device, VkDescriptorPool descriptorPool,
+@@ -3182,7 +4675,6 @@ vkFreeDescriptorSets(VkDevice device, VkDescriptorPool descriptorPool,
          VkPs5DescriptorSet *set = *link;
          *link = set->next;
          pool->allocated_sets--;
@@ -7356,7 +7809,7 @@ index b10734c..5ec1806 100644
          vk_ps5_device_free(device, NULL, set);
      }
      return VK_SUCCESS;
-@@ -3286,7 +4750,42 @@ VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
+@@ -3286,7 +4778,42 @@ VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkUpdateDescriptorSetWithTemplate(VkDevice device, VkDescriptorSet descriptorSet,
                                    VkDescriptorUpdateTemplate descriptorUpdateTemplate,
                                    const void *pData) {
@@ -7400,7 +7853,7 @@ index b10734c..5ec1806 100644
  }
  
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
-@@ -3323,70 +4822,585 @@ vkGetRenderAreaGranularity(VkDevice device, VkRenderPass renderPass,
+@@ -3323,70 +4850,585 @@ vkGetRenderAreaGranularity(VkDevice device, VkRenderPass renderPass,
  
  #define IGNORE(x) (void)(x)
  
@@ -7472,9 +7925,6 @@ index b10734c..5ec1806 100644
 -        uint64_t source_start = source_base + r[source_region].srcOffset;
 -        uint64_t source_end = source_start + r[source_region].size;
 -        for (uint32_t destination_region = 0u;
--             destination_region < n; ++destination_region) {
--            uint64_t destination_start =
--                destination_base + r[destination_region].dstOffset;
 +static VkResult native_command_result(int32_t result)
 +{
 +    if (result == AGC_OK)
@@ -8043,13 +8493,15 @@ index b10734c..5ec1806 100644
 +            r[source_region].srcOffset;
 +        uint64_t source_end = source_start + r[source_region].size;
 +        for (uint32_t destination_region = 0u;
-+             destination_region < n; ++destination_region) {
+              destination_region < n; ++destination_region) {
+-            uint64_t destination_start =
+-                destination_base + r[destination_region].dstOffset;
 +            uint64_t destination_start = destination->memory_offset +
 +                r[destination_region].dstOffset;
              uint64_t destination_end =
                  destination_start + r[destination_region].size;
              if (source_start < destination_end &&
-@@ -3396,70 +5410,554 @@ vkCmdCopyBuffer(VkCommandBuffer c, VkBuffer s, VkBuffer d, uint32_t n,
+@@ -3396,70 +5438,554 @@ vkCmdCopyBuffer(VkCommandBuffer c, VkBuffer s, VkBuffer d, uint32_t n,
              }
          }
      }
@@ -8648,7 +9100,7 @@ index b10734c..5ec1806 100644
          return;
      }
      command->active_query_pool = pool;
-@@ -3475,24 +5973,19 @@ vkCmdEndQuery(VkCommandBuffer c, VkQueryPool p, uint32_t q) {
+@@ -3475,24 +6001,19 @@ vkCmdEndQuery(VkCommandBuffer c, VkQueryPool p, uint32_t q) {
              command->record_error = VK_ERROR_INITIALIZATION_FAILED;
          return;
      }
@@ -8681,7 +9133,7 @@ index b10734c..5ec1806 100644
      VkPs5CommandBuffer *command = (VkPs5CommandBuffer *)c;
      VkPs5QueryPool *pool = (VkPs5QueryPool *)p;
      if (!command || command->state != VK_PS5_COMMAND_RECORDING || !pool ||
-@@ -3501,15 +5994,15 @@ vkCmdResetQueryPool(VkCommandBuffer c, VkQueryPool p, uint32_t f, uint32_t n) {
+@@ -3501,15 +6022,15 @@ vkCmdResetQueryPool(VkCommandBuffer c, VkQueryPool p, uint32_t f, uint32_t n) {
              command->record_error = VK_ERROR_INITIALIZATION_FAILED;
          return;
      }
@@ -8706,7 +9158,7 @@ index b10734c..5ec1806 100644
  }
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkCmdWriteTimestamp(VkCommandBuffer c, VkPipelineStageFlagBits s, VkQueryPool p,
-@@ -3535,6 +6028,7 @@ vkCmdExecuteCommands(VkCommandBuffer c, uint32_t n, const VkCommandBuffer *p) {
+@@ -3535,6 +6056,7 @@ vkCmdExecuteCommands(VkCommandBuffer c, uint32_t n, const VkCommandBuffer *p) {
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkCmdBindPipeline(VkCommandBuffer c, VkPipelineBindPoint b, VkPipeline p) {
      VkPs5CommandBuffer *command = (VkPs5CommandBuffer *)c;
@@ -8714,7 +9166,7 @@ index b10734c..5ec1806 100644
      VkPs5Pipeline *pipeline = (VkPs5Pipeline *)p;
      if (!command || command->state != VK_PS5_COMMAND_RECORDING ||
          !pipeline || pipeline->bind_point != b) {
-@@ -3542,18 +6036,77 @@ vkCmdBindPipeline(VkCommandBuffer c, VkPipelineBindPoint b, VkPipeline p) {
+@@ -3542,18 +6064,77 @@ vkCmdBindPipeline(VkCommandBuffer c, VkPipelineBindPoint b, VkPipeline p) {
              command->record_error = VK_ERROR_INITIALIZATION_FAILED;
          return;
      }
@@ -8795,7 +9247,7 @@ index b10734c..5ec1806 100644
      IGNORE(l); IGNORE(d);
      if (!command || command->state != VK_PS5_COMMAND_RECORDING ||
          (n && !s) || f > OPENAGC_PSBC_MAX_DESCRIPTOR_SETS ||
-@@ -3582,7 +6135,8 @@ VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
+@@ -3582,7 +6163,8 @@ VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkCmdClearColorImage(VkCommandBuffer c, VkImage i, VkImageLayout l,
                       const VkClearColorValue *v, uint32_t n,
                       const VkImageSubresourceRange *r) {
@@ -8805,7 +9257,7 @@ index b10734c..5ec1806 100644
  }
  
  static VkPs5DescriptorValue *descriptor_value(
-@@ -3603,300 +6157,171 @@ static VkPs5DescriptorValue *descriptor_value(
+@@ -3603,300 +6185,171 @@ static VkPs5DescriptorValue *descriptor_value(
      return NULL;
  }
  
@@ -9240,7 +9692,7 @@ index b10734c..5ec1806 100644
      return VK_SUCCESS;
  }
  
-@@ -3918,50 +6343,69 @@ vkCmdDispatch(VkCommandBuffer c, uint32_t x, uint32_t y, uint32_t z) {
+@@ -3918,50 +6371,69 @@ vkCmdDispatch(VkCommandBuffer c, uint32_t x, uint32_t y, uint32_t z) {
          command->record_error = VK_ERROR_FEATURE_NOT_PRESENT;
          return;
      }
@@ -9348,7 +9800,7 @@ index b10734c..5ec1806 100644
  }
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkCmdSetEvent(VkCommandBuffer c, VkEvent e, VkPipelineStageFlags s) {
-@@ -3983,11 +6427,64 @@ vkCmdWaitEvents(VkCommandBuffer c, uint32_t n, const VkEvent *e,
+@@ -3983,11 +6455,64 @@ vkCmdWaitEvents(VkCommandBuffer c, uint32_t n, const VkEvent *e,
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkCmdPushConstants(VkCommandBuffer c, VkPipelineLayout l, VkShaderStageFlags s,
                     uint32_t o, uint32_t n, const void *v) {
@@ -9414,7 +9866,7 @@ index b10734c..5ec1806 100644
      if (!command || command->state != VK_PS5_COMMAND_RECORDING ||
          command->record_error != VK_SUCCESS)
          return;
-@@ -4012,6 +6509,7 @@ vkCmdSetViewport(VkCommandBuffer c, uint32_t f, uint32_t n, const VkViewport *v)
+@@ -4012,6 +6537,7 @@ vkCmdSetViewport(VkCommandBuffer c, uint32_t f, uint32_t n, const VkViewport *v)
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkCmdSetScissor(VkCommandBuffer c, uint32_t f, uint32_t n, const VkRect2D *r) {
      VkPs5CommandBuffer *command = (VkPs5CommandBuffer *)c;
@@ -9422,7 +9874,7 @@ index b10734c..5ec1806 100644
      if (!command || command->state != VK_PS5_COMMAND_RECORDING ||
          command->record_error != VK_SUCCESS)
          return;
-@@ -4036,6 +6534,7 @@ vkCmdSetScissor(VkCommandBuffer c, uint32_t f, uint32_t n, const VkRect2D *r) {
+@@ -4036,6 +6562,7 @@ vkCmdSetScissor(VkCommandBuffer c, uint32_t f, uint32_t n, const VkRect2D *r) {
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkCmdSetLineWidth(VkCommandBuffer c, float w) {
      VkPs5CommandBuffer *command = (VkPs5CommandBuffer *)c;
@@ -9430,7 +9882,7 @@ index b10734c..5ec1806 100644
      if (!command || command->state != VK_PS5_COMMAND_RECORDING ||
          command->record_error != VK_SUCCESS)
          return;
-@@ -4045,11 +6544,19 @@ vkCmdSetLineWidth(VkCommandBuffer c, float w) {
+@@ -4045,11 +6572,19 @@ vkCmdSetLineWidth(VkCommandBuffer c, float w) {
      }
      command->dynamic_line_width = w;
      command->dynamic_line_width_set = VK_TRUE;
@@ -9450,7 +9902,7 @@ index b10734c..5ec1806 100644
      if (!command || command->state != VK_PS5_COMMAND_RECORDING ||
          command->record_error != VK_SUCCESS)
          return;
-@@ -4059,9 +6566,38 @@ vkCmdSetDepthBias(VkCommandBuffer c, float constantFactor,
+@@ -4059,9 +6594,38 @@ vkCmdSetDepthBias(VkCommandBuffer c, float constantFactor,
          .slope_factor = slopeFactor,
      };
      command->dynamic_depth_bias_set = VK_TRUE;
@@ -9490,7 +9942,7 @@ index b10734c..5ec1806 100644
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkCmdSetDepthBounds(VkCommandBuffer c, float a, float b) { IGNORE(c); IGNORE(a); IGNORE(b); }
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
-@@ -4074,7 +6610,31 @@ vkCmdSetStencilWriteMask(VkCommandBuffer c, VkStencilFaceFlags f, uint32_t m) {
+@@ -4074,7 +6638,31 @@ vkCmdSetStencilWriteMask(VkCommandBuffer c, VkStencilFaceFlags f, uint32_t m) {
  }
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkCmdSetStencilReference(VkCommandBuffer c, VkStencilFaceFlags f, uint32_t r) {
@@ -9523,7 +9975,7 @@ index b10734c..5ec1806 100644
  }
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkCmdBindIndexBuffer(VkCommandBuffer c, VkBuffer b, VkDeviceSize o, VkIndexType t) {
-@@ -4092,12 +6652,48 @@ vkCmdBindIndexBuffer(VkCommandBuffer c, VkBuffer b, VkDeviceSize o, VkIndexType
+@@ -4092,12 +6680,48 @@ vkCmdBindIndexBuffer(VkCommandBuffer c, VkBuffer b, VkDeviceSize o, VkIndexType
      }
      command->index_buffer = buffer;
      command->index_offset = o;
@@ -9572,7 +10024,7 @@ index b10734c..5ec1806 100644
      if (!command || command->state != VK_PS5_COMMAND_RECORDING ||
          f > VK_PS5_MAX_VERTEX_BINDINGS ||
          n > VK_PS5_MAX_VERTEX_BINDINGS - f || (n && (!b || !o))) {
-@@ -4117,484 +6713,533 @@ vkCmdBindVertexBuffers(VkCommandBuffer c, uint32_t f, uint32_t n,
+@@ -4117,484 +6741,533 @@ vkCmdBindVertexBuffers(VkCommandBuffer c, uint32_t f, uint32_t n,
          command->vertex_offsets[f + i] = o[i];
      }
  }
@@ -10556,7 +11008,7 @@ index b10734c..5ec1806 100644
  }
  
  static void record_graphics_draw(
-@@ -4617,61 +7262,173 @@ static void record_graphics_draw(
+@@ -4617,61 +7290,173 @@ static void record_graphics_draw(
          pipeline->stage_types[2] == OPENAGC_PSBC_STAGE_FRAGMENT;
      if (!pipeline || !command->active_render_pass ||
          (!baseline && !tessellation) || !element_count || !instance_count) {
@@ -10763,7 +11215,7 @@ index b10734c..5ec1806 100644
      record_graphics_draw((VkPs5CommandBuffer *)c, v, i, fv, 0, fi, false);
  }
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
-@@ -4701,8 +7458,7 @@ static void record_graphics_indirect(
+@@ -4701,8 +7486,7 @@ static void record_graphics_indirect(
          !arguments->memory ||
          !(arguments->usage & VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT) ||
          (offset & 3u) != 0u ||
@@ -10773,7 +11225,7 @@ index b10734c..5ec1806 100644
          command->record_error = VK_ERROR_FEATURE_NOT_PRESENT;
          return;
      }
-@@ -4722,77 +7478,80 @@ static void record_graphics_indirect(
+@@ -4722,77 +7506,80 @@ static void record_graphics_indirect(
          return;
      }
  
@@ -10916,7 +11368,7 @@ index b10734c..5ec1806 100644
  }
  
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
-@@ -4806,27 +7565,207 @@ vkCmdDrawIndexedIndirect(VkCommandBuffer c, VkBuffer b, VkDeviceSize o,
+@@ -4806,27 +7593,207 @@ vkCmdDrawIndexedIndirect(VkCommandBuffer c, VkBuffer b, VkDeviceSize o,
      record_graphics_indirect((VkPs5CommandBuffer *)c, (VkPs5Buffer *)b,
          o, n, s, true);
  }
@@ -11128,7 +11580,7 @@ index b10734c..5ec1806 100644
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
  vkCmdBeginRenderPass(VkCommandBuffer c, const VkRenderPassBeginInfo *b,
                       VkSubpassContents s) {
-@@ -4856,9 +7795,7 @@ vkCmdBeginRenderPass(VkCommandBuffer c, const VkRenderPassBeginInfo *b,
+@@ -4856,9 +7823,7 @@ vkCmdBeginRenderPass(VkCommandBuffer c, const VkRenderPassBeginInfo *b,
          command->record_error = VK_ERROR_INITIALIZATION_FAILED;
          return;
      }
@@ -11139,7 +11591,7 @@ index b10734c..5ec1806 100644
          uint32_t attachment_index =
              render_pass->subpasses[0].color_attachments[slot];
          if (attachment_index == VK_ATTACHMENT_UNUSED ||
-@@ -4870,132 +7807,69 @@ vkCmdBeginRenderPass(VkCommandBuffer c, const VkRenderPassBeginInfo *b,
+@@ -4870,132 +7835,69 @@ vkCmdBeginRenderPass(VkCommandBuffer c, const VkRenderPassBeginInfo *b,
              &render_pass->attachments[attachment_index];
          VkPs5ImageView *view = framebuffer->attachments[attachment_index];
          VkPs5Image *image = view ? (VkPs5Image *)view->image : NULL;
@@ -11317,7 +11769,7 @@ index b10734c..5ec1806 100644
      command->active_render_pass = render_pass;
      command->active_framebuffer = framebuffer;
      command->active_subpass = 0u;
-@@ -5019,7 +7893,8 @@ vkCmdEndRenderPass(VkCommandBuffer c) {
+@@ -5019,7 +7921,8 @@ vkCmdEndRenderPass(VkCommandBuffer c) {
      if (!command || command->state != VK_PS5_COMMAND_RECORDING ||
          command->record_error != VK_SUCCESS)
          return;
@@ -11327,7 +11779,7 @@ index b10734c..5ec1806 100644
          command->record_error = VK_ERROR_INITIALIZATION_FAILED;
          return;
      }
-@@ -5034,49 +7909,130 @@ vkCmdEndRenderPass(VkCommandBuffer c) {
+@@ -5034,49 +7937,130 @@ vkCmdEndRenderPass(VkCommandBuffer c) {
              subpasses[command->active_subpass].color_attachments[slot];
          const VkAttachmentDescription *attachment =
              &command->active_render_pass->attachments[attachment_index];
@@ -11482,7 +11934,7 @@ index b10734c..5ec1806 100644
  vkCmdSetDeviceMask(VkCommandBuffer c, uint32_t m) { IGNORE(c); IGNORE(m); }
  VK_PS5_EXPORT VKAPI_ATTR void VKAPI_CALL
 diff --git a/src/vulkan_ps5_internal.h b/src/vulkan_ps5_internal.h
-index b4126d6..dbbd182 100644
+index b4126d6..cb676aa 100644
 --- a/src/vulkan_ps5_internal.h
 +++ b/src/vulkan_ps5_internal.h
 @@ -5,6 +5,7 @@
@@ -11493,7 +11945,15 @@ index b4126d6..dbbd182 100644
  
  #include <stddef.h>
  #include <stdint.h>
-@@ -31,21 +32,53 @@ VkResult vk_ps5_set_device_loader_data(VkDevice device, void *object);
+@@ -22,6 +23,7 @@ void *vk_ps5_device_alloc(VkDevice device, const VkAllocationCallbacks *allocato
+                           size_t size, size_t alignment, VkSystemAllocationScope scope);
+ void vk_ps5_device_free(VkDevice device, const VkAllocationCallbacks *allocator, void *ptr);
+ VkBool32 vk_ps5_device_robust_buffer_access(VkDevice device);
++VkBool32 vk_ps5_device_depth_clip_enable(VkDevice device);
+ void *vk_ps5_instance_alloc(VkInstance instance,
+     const VkAllocationCallbacks *allocator, size_t size, size_t alignment,
+     VkSystemAllocationScope scope);
+@@ -31,21 +33,55 @@ VkResult vk_ps5_set_device_loader_data(VkDevice device, void *object);
  VkDevice vk_ps5_queue_device(VkQueue queue);
  VkDeviceSize vk_ps5_memory_size(VkDeviceMemory memory);
  uint64_t vk_ps5_memory_gpu_address(VkDeviceMemory memory, VkDeviceSize offset);
@@ -11552,6 +12012,8 @@ index b4126d6..dbbd182 100644
 +VkBool32 vk_ps5_pipeline_has_native_shaders(VkPipeline pipeline);
 +VkBool32 vk_ps5_pipeline_has_native_compute_pipeline(VkPipeline pipeline);
 +VkBool32 vk_ps5_pipeline_has_native_graphics_pipeline(VkPipeline pipeline);
++AgcRasterizationStateFlags vk_ps5_pipeline_native_rasterization_flags(
++    VkPipeline pipeline);
 +VkResult vk_ps5_enable_image_scanout(VkImage image);
 +AgcImage vk_ps5_native_image(VkImage image);
 +void vk_ps5_set_image_native_usage(VkImage image, AgcResourceUsage usage);
@@ -13713,8 +14175,113 @@ index 1f9c3c2..e22da77 100644
      vkDestroyBuffer(device, indirect_buffer, NULL);
      vkFreeMemory(device, indirect_memory, NULL);
      vkDestroyBuffer(device, vertex_buffer, NULL);
+diff --git a/tests/depth_clip_enable_runner.sh b/tests/depth_clip_enable_runner.sh
+new file mode 100755
+index 0000000..8bd8cd4
+--- /dev/null
++++ b/tests/depth_clip_enable_runner.sh
+@@ -0,0 +1,99 @@
++#!/bin/sh
++set -eu
++
++repo_dir=$1
++runner="$repo_dir/examples/run_fw550_depth_clip_enable.sh"
++fw1160_runner="$repo_dir/examples/run_fw1160_depth_clip_enable.sh"
++test_root=$(mktemp -d "${TMPDIR:-/tmp}/vulkan-ps5-depth-clip-enable.XXXXXX")
++trap 'rm -rf "$test_root"' EXIT
++
++mkdir -p "$test_root/bin" "$test_root/build" "$test_root/pyps4debug"
++: >"$test_root/build/vulkan_ps5_depth_clip_enable_probe.elf"
++: >"$test_root/build/vulkan_ps5_process_cleanup.elf"
++
++cat >"$test_root/bin/curl" <<'EOF'
++#!/bin/sh
++for arg do
++    case "$arg" in
++        */hbldr*) printf '%s\n' \
++            'depth_clip_enable: PASS green=12288 red=9830 raw=54145/0/9830 stencil=22118' ;;
++    esac
++done
++EOF
++
++cat >"$test_root/bin/nc" <<'EOF'
++#!/bin/sh
++if [ "${FAKE_KLOG_MODE:-clean}" = empty ]; then
++    exit 0
++fi
++if [ "${FAKE_KLOG_MODE:-clean}" = unavailable ]; then
++    echo 'nc: connectx to 127.0.0.1 port 3232 (tcp) failed: Connection refused' >&2
++    exit 1
++fi
++printf '%s\n' \
++    '<931> EXEC /app0/eboot.bin [system], vm#1 category=native_game' \
++    '<932> EXEC /app0/eboot.bin [system], vm#1 category=shell_ui'
++printf '\000'
++printf '%s\n' \
++    '[SceLncService] KillApp() appId={0x00008017} is requested from 0x00008017' \
++    '[AppMgr] All processes exited'
++case "${FAKE_KLOG_MODE:-clean}" in
++    clean) ;;
++    crash) printf '%s\n' '# proc ID: 931' ;;
++    *) exit 2 ;;
++esac
++EOF
++
++cat >"$test_root/bin/uv" <<'EOF'
++#!/bin/sh
++case " $* " in
++    *" --pid 931 "*" eboot.bin "*) ;;
++    *" --assert-absent "*" eboot.bin "*) ;;
++    *" --assert-absent "*" eboot.elf "*) ;;
++    *) echo "depth-clip-enable runner did not use exact PID" >&2; exit 2 ;;
++esac
++printf '%s\n' "$*" >>"$FAKE_UV_LOG"
++echo "ps5debug-NG: no process matching pid 931"
++EOF
++chmod +x "$test_root/bin/curl" "$test_root/bin/nc" "$test_root/bin/uv"
++
++run_runner() {
++    mode=$1
++    output=$2
++    selected_runner=${3:-$runner}
++    : >"$test_root/uv.log"
++    PATH="$test_root/bin:$PATH" \
++    PS5_HOST=127.0.0.1 \
++    PYPS4DEBUG_DIR="$test_root/pyps4debug" \
++    VULKAN_PS5_PROSPERO_BUILD="$test_root/build" \
++    VULKAN_PS5_FW550_LOG_DIR="$test_root/logs-$mode" \
++    VULKAN_PS5_KLOG_SETTLE_DELAY=0 \
++    FAKE_UV_LOG="$test_root/uv.log" \
++    FAKE_KLOG_MODE="$mode" \
++        sh "$selected_runner" >"$output" 2>&1
++}
++
++run_runner clean "$test_root/clean.out"
++grep -F 'FW550 depth-clip-enable probe: CLEAN' "$test_root/clean.out" >/dev/null
++grep -F -- '--assert-absent --pid 931' "$test_root/uv.log" >/dev/null
++if grep -F -- '--pid 932' "$test_root/uv.log" >/dev/null; then
++    echo "depth-clip-enable runner targeted the later ShellUI PID" >&2
++    exit 1
++fi
++
++if run_runner crash "$test_root/crash.out"; then
++    echo "fatal depth-clip-enable klog unexpectedly passed" >&2
++    exit 1
++fi
++grep -F 'fatal lifecycle fault' "$test_root/crash.out" >/dev/null
++grep -F -- '--pid 931' "$test_root/uv.log" >/dev/null
++
++run_runner empty "$test_root/fw1160.out" "$fw1160_runner"
++grep -F 'FW1160 depth-clip-enable probe: NO_KLOG_PROCESS_ABSENCE' \
++    "$test_root/fw1160.out" >/dev/null
++
++run_runner unavailable "$test_root/fw1160-unavailable.out" "$fw1160_runner"
++grep -F 'FW1160 depth-clip-enable probe: NO_KLOG_PROCESS_ABSENCE' \
++    "$test_root/fw1160-unavailable.out" >/dev/null
++
++echo "depth-clip-enable runner safety gate: PASS"
 diff --git a/tests/lifecycle.c b/tests/lifecycle.c
-index 105a7d8..d4adc42 100644
+index 105a7d8..da927e4 100644
 --- a/tests/lifecycle.c
 +++ b/tests/lifecycle.c
 @@ -9,12 +9,12 @@ int main(void) {
@@ -13772,12 +14339,12 @@ index 105a7d8..d4adc42 100644
          physical, NULL, &extension_count, NULL) == VK_SUCCESS);
 -    assert(extension_count == 7);
 -    VkExtensionProperties extensions[7];
-+    assert(extension_count == 21);
-+    VkExtensionProperties extensions[21];
++    assert(extension_count == 22);
++    VkExtensionProperties extensions[22];
      assert(vkEnumerateDeviceExtensionProperties(
          physical, NULL, &extension_count, extensions) == VK_SUCCESS);
      VkBool32 has_host_query_reset = VK_FALSE;
-@@ -109,6 +139,15 @@ int main(void) {
+@@ -109,6 +139,16 @@ int main(void) {
      VkBool32 has_sampler_mirror_clamp = VK_FALSE;
      VkBool32 has_shader_float_controls = VK_FALSE;
      VkBool32 has_shader_demote = VK_FALSE;
@@ -13790,10 +14357,11 @@ index 105a7d8..d4adc42 100644
 +    VkBool32 has_custom_border_color = VK_FALSE;
 +    VkBool32 has_border_color_swizzle = VK_FALSE;
 +    VkBool32 has_maintenance5 = VK_FALSE;
++    VkBool32 has_depth_clip_enable = VK_FALSE;
      for (uint32_t i = 0; i < extension_count; ++i) {
          has_host_query_reset |= strcmp(extensions[i].extensionName,
              VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME) == 0;
-@@ -124,10 +163,32 @@ int main(void) {
+@@ -124,10 +164,34 @@ int main(void) {
              VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME) == 0;
          has_shader_demote |= strcmp(extensions[i].extensionName,
              VK_EXT_SHADER_DEMOTE_TO_HELPER_INVOCATION_EXTENSION_NAME) == 0;
@@ -13815,6 +14383,8 @@ index 105a7d8..d4adc42 100644
 +            VK_EXT_BORDER_COLOR_SWIZZLE_EXTENSION_NAME) == 0;
 +        has_maintenance5 |= strcmp(extensions[i].extensionName,
 +            VK_KHR_MAINTENANCE_5_EXTENSION_NAME) == 0;
++        has_depth_clip_enable |= strcmp(extensions[i].extensionName,
++            VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME) == 0;
      }
      assert(has_host_query_reset && has_vertex_divisor && has_swapchain &&
             has_driver_properties && has_sampler_mirror_clamp &&
@@ -13823,11 +14393,11 @@ index 105a7d8..d4adc42 100644
 +           has_maintenance1 && has_renderpass2 && has_descriptor_template);
 +    assert(has_timeline && has_scalar_layout && has_dynamic_rendering &&
 +           has_custom_border_color && has_border_color_swizzle);
-+    assert(has_maintenance5);
++    assert(has_maintenance5 && has_depth_clip_enable);
  
      VkPhysicalDeviceVulkan11Features features11 = {
          .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
-@@ -155,6 +216,7 @@ int main(void) {
+@@ -155,6 +219,7 @@ int main(void) {
      };
      vkGetPhysicalDeviceFeatures2(physical, &features2);
      assert(features2.features.robustBufferAccess == VK_TRUE);
@@ -13835,7 +14405,7 @@ index 105a7d8..d4adc42 100644
      assert(host_query_reset.hostQueryReset == VK_TRUE);
      assert(demote_features.shaderDemoteToHelperInvocation == VK_TRUE);
      assert(divisor_features.vertexAttributeInstanceRateDivisor == VK_TRUE);
-@@ -204,6 +266,91 @@ int main(void) {
+@@ -204,6 +269,101 @@ int main(void) {
      vkGetPhysicalDeviceFeatures2(physical, &variable_pointer_features2);
      assert(variable_pointer_features.variablePointers == VK_TRUE);
      assert(variable_pointer_features.variablePointersStorageBuffer == VK_TRUE);
@@ -13898,6 +14468,16 @@ index 105a7d8..d4adc42 100644
 +    };
 +    vkGetPhysicalDeviceFeatures2(physical, &maintenance5_features2);
 +    assert(maintenance5_features.maintenance5 == VK_TRUE);
++    VkPhysicalDeviceDepthClipEnableFeaturesEXT depth_clip_features = {
++        .sType =
++            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT,
++    };
++    VkPhysicalDeviceFeatures2 depth_clip_features2 = {
++        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
++        .pNext = &depth_clip_features,
++    };
++    vkGetPhysicalDeviceFeatures2(physical, &depth_clip_features2);
++    assert(depth_clip_features.depthClipEnable == VK_TRUE);
 +    VkPhysicalDeviceVulkan12Features features12 = {
 +        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
 +    };
@@ -13927,7 +14507,7 @@ index 105a7d8..d4adc42 100644
  
      VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT divisor_features_ext = {
          .sType =
-@@ -222,6 +369,7 @@ int main(void) {
+@@ -222,6 +382,7 @@ int main(void) {
      VkPhysicalDeviceFeatures features;
      vkGetPhysicalDeviceFeatures(physical, &features);
      assert(features.robustBufferAccess == VK_TRUE);
@@ -13935,7 +14515,7 @@ index 105a7d8..d4adc42 100644
      assert(features.depthBiasClamp == VK_TRUE);
      assert(features.depthClamp == VK_TRUE);
      assert(features.drawIndirectFirstInstance == VK_TRUE);
-@@ -269,6 +417,7 @@ int main(void) {
+@@ -269,6 +430,7 @@ int main(void) {
      features.vertexPipelineStoresAndAtomics = VK_FALSE;
      features.wideLines = VK_FALSE;
      features.robustBufferAccess = VK_FALSE;
@@ -13943,7 +14523,7 @@ index 105a7d8..d4adc42 100644
      const VkBool32 *feature_bits = (const VkBool32 *)&features;
      for (size_t i = 0; i < sizeof(features) / sizeof(*feature_bits); ++i)
          assert(feature_bits[i] == VK_FALSE);
-@@ -298,6 +447,15 @@ int main(void) {
+@@ -298,6 +460,15 @@ int main(void) {
          VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TYPE_2D,
          VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT, 0u,
          &image_format_properties) == VK_ERROR_FORMAT_NOT_SUPPORTED);
@@ -13959,16 +14539,16 @@ index 105a7d8..d4adc42 100644
      vkGetPhysicalDeviceFormatProperties(physical, VK_FORMAT_ASTC_4x4_UNORM_BLOCK,
                                          &format_properties);
      assert(format_properties.optimalTilingFeatures == 0);
-@@ -321,7 +479,7 @@ int main(void) {
+@@ -321,7 +492,7 @@ int main(void) {
          .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
          .queueCreateInfoCount = 1,
          .pQueueCreateInfos = &queue_info,
 -        .enabledExtensionCount = 6,
-+.enabledExtensionCount = 11,
++.enabledExtensionCount = 12,
          .ppEnabledExtensionNames =
              (const char *const[]){
                  VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME,
-@@ -330,10 +488,26 @@ int main(void) {
+@@ -330,10 +501,32 @@ int main(void) {
                  VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME,
                  VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
                  VK_EXT_SHADER_DEMOTE_TO_HELPER_INVOCATION_EXTENSION_NAME,
@@ -13979,25 +14559,31 @@ index 105a7d8..d4adc42 100644
 +                VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME,
 +VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
 +VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME,
++VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
 +},
 +};
 +VkPhysicalDeviceLineRasterizationFeatures enabled_line = {
 +.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES,
 +.rectangularLines = VK_TRUE,
 +};
++VkPhysicalDeviceDepthClipEnableFeaturesEXT enabled_depth_clip = {
++.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT,
++.pNext = &enabled_line,
++.depthClipEnable = VK_TRUE,
++};
 +VkPhysicalDeviceTimelineSemaphoreFeatures enabled_timeline = {
 +        .sType =
 +            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES,
 +.timelineSemaphore = VK_TRUE,
 +};
-+enabled_timeline.pNext = &enabled_line;
++enabled_timeline.pNext = &enabled_depth_clip;
      VkPhysicalDeviceHostQueryResetFeatures enabled_host_query_reset = {
          .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES,
 +        .pNext = &enabled_timeline,
          .hostQueryReset = VK_TRUE,
      };
      VkPhysicalDeviceVertexAttributeDivisorFeatures enabled_divisor = {
-@@ -463,6 +637,128 @@ int main(void) {
+@@ -463,6 +656,128 @@ int main(void) {
      VkQueue queue = VK_NULL_HANDLE;
      vkGetDeviceQueue(device, 0, 0, &queue);
      assert(queue != VK_NULL_HANDLE);
@@ -14347,7 +14933,7 @@ index fdc22ad..1cbaed8 100755
          mkdir -p "$(dirname "$artifact_output")"
          cmake -E copy "$consumer_build/vulkan_ps5_package_consumer.elf" \
 diff --git a/tests/pipeline.c b/tests/pipeline.c
-index c50b52a..7a727d0 100644
+index c50b52a..6b6699a 100644
 --- a/tests/pipeline.c
 +++ b/tests/pipeline.c
 @@ -1,5 +1,7 @@
@@ -14367,30 +14953,37 @@ index c50b52a..7a727d0 100644
      const VkInstanceCreateInfo instance_info = {
          .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
      };
-@@ -46,11 +48,22 @@ int main(int argc, char **argv) {
+@@ -46,11 +48,29 @@ int main(int argc, char **argv) {
          .queueCount = 1,
          .pQueuePriorities = &priority,
      };
++    VkPhysicalDeviceDepthClipEnableFeaturesEXT depth_clip_features = {
++        .sType =
++            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT,
++        .depthClipEnable = VK_TRUE,
++    };
 +    const VkPhysicalDeviceScalarBlockLayoutFeatures scalar_features = {
 +        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES,
++        .pNext = &depth_clip_features,
 +        .scalarBlockLayout = VK_TRUE,
 +    };
 +    const char *device_extensions[] = {
 +        VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME,
++        VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
 +    };
      const VkDeviceCreateInfo device_info = {
          .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 +        .pNext = &scalar_features,
          .queueCreateInfoCount = 1,
          .pQueueCreateInfos = &queue,
-+        .enabledExtensionCount = 1,
++        .enabledExtensionCount = 2,
 +        .ppEnabledExtensionNames = device_extensions,
          .pEnabledFeatures = &(const VkPhysicalDeviceFeatures){
 +            .alphaToOne = VK_TRUE,
              .imageCubeArray = VK_TRUE,
              .multiViewport = VK_TRUE,
          },
-@@ -66,6 +79,7 @@ int main(int argc, char **argv) {
+@@ -66,6 +86,7 @@ int main(int argc, char **argv) {
      VkShaderModule tess_evaluation = shader_module(device, argv[6]);
      VkShaderModule sample_fragment = shader_module(device, argv[7]);
      VkShaderModule cube_array_fragment = shader_module(device, argv[8]);
@@ -14398,7 +14991,7 @@ index c50b52a..7a727d0 100644
  
      VkDescriptorSetLayout empty_set = VK_NULL_HANDLE, resource_set = VK_NULL_HANDLE;
      const VkDescriptorSetLayoutCreateInfo empty_info = {
-@@ -112,6 +126,17 @@ int main(int argc, char **argv) {
+@@ -112,6 +133,17 @@ int main(int argc, char **argv) {
      VkPipeline compute_pipeline = VK_NULL_HANDLE;
      assert(vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &compute_info,
                                      NULL, &compute_pipeline) == VK_SUCCESS);
@@ -14416,7 +15009,7 @@ index c50b52a..7a727d0 100644
  
      const VkDescriptorSetLayoutBinding sampled_binding = {
          .binding = 0,
-@@ -239,6 +264,54 @@ int main(int argc, char **argv) {
+@@ -239,6 +271,100 @@ int main(int argc, char **argv) {
      VkPipeline graphics_pipeline = VK_NULL_HANDLE;
      assert(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &graphics_info,
                                       NULL, &graphics_pipeline) == VK_SUCCESS);
@@ -14446,6 +15039,52 @@ index c50b52a..7a727d0 100644
 +        &clamp_graphics_info, NULL, &clamp_graphics_pipeline) == VK_SUCCESS);
 +    assert(vk_ps5_pipeline_has_native_graphics_pipeline(
 +        clamp_graphics_pipeline));
++    const VkPipelineRasterizationDepthClipStateCreateInfoEXT depth_clip_off = {
++        .sType =
++            VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT,
++        .depthClipEnable = VK_FALSE,
++    };
++    VkPipelineRasterizationStateCreateInfo unclipped_rasterization =
++        native_rasterization;
++    unclipped_rasterization.pNext = &depth_clip_off;
++    VkGraphicsPipelineCreateInfo unclipped_graphics_info =
++        native_graphics_info;
++    unclipped_graphics_info.pRasterizationState = &unclipped_rasterization;
++    VkPipeline unclipped_graphics_pipeline = VK_NULL_HANDLE;
++    assert(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1,
++        &unclipped_graphics_info, NULL, &unclipped_graphics_pipeline) ==
++        VK_SUCCESS);
++    assert(vk_ps5_pipeline_has_native_graphics_pipeline(
++        unclipped_graphics_pipeline));
++    assert(vk_ps5_pipeline_native_rasterization_flags(
++        unclipped_graphics_pipeline) ==
++        AGC_RASTERIZATION_DEPTH_CLIP_DISABLE_BIT);
++    VkPipelineRasterizationDepthClipStateCreateInfoEXT depth_clip_on =
++        depth_clip_off;
++    depth_clip_on.depthClipEnable = VK_TRUE;
++    VkPipelineRasterizationStateCreateInfo clipped_clamp_rasterization =
++        clamp_rasterization;
++    clipped_clamp_rasterization.pNext = &depth_clip_on;
++    VkGraphicsPipelineCreateInfo clipped_clamp_graphics_info =
++        native_graphics_info;
++    clipped_clamp_graphics_info.pRasterizationState =
++        &clipped_clamp_rasterization;
++    VkPipeline clipped_clamp_graphics_pipeline = VK_NULL_HANDLE;
++    assert(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1,
++        &clipped_clamp_graphics_info, NULL,
++        &clipped_clamp_graphics_pipeline) == VK_SUCCESS);
++    assert(vk_ps5_pipeline_native_rasterization_flags(
++        clipped_clamp_graphics_pipeline) ==
++        AGC_RASTERIZATION_DEPTH_CLIP_ENABLE_BIT);
++    VkPipelineRasterizationDepthClipStateCreateInfoEXT bad_depth_clip =
++        depth_clip_off;
++    bad_depth_clip.flags = 1u;
++    unclipped_rasterization.pNext = &bad_depth_clip;
++    VkPipeline bad_depth_clip_pipeline = VK_NULL_HANDLE;
++    assert(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1,
++        &unclipped_graphics_info, NULL, &bad_depth_clip_pipeline) ==
++        VK_ERROR_FEATURE_NOT_PRESENT);
++    assert(bad_depth_clip_pipeline == VK_NULL_HANDLE);
 +    VkPipelineMultisampleStateCreateInfo alpha_to_one_state = multisample;
 +    alpha_to_one_state.alphaToOneEnable = VK_TRUE;
 +    VkGraphicsPipelineCreateInfo alpha_to_one_info = graphics_info;
@@ -14471,7 +15110,7 @@ index c50b52a..7a727d0 100644
      const VkViewport multi_viewports[] = {
          {0, 0, 128, 256, 0, 1},
          {128, 0, 128, 256, 0.25f, 0.75f},
-@@ -332,21 +405,48 @@ int main(int argc, char **argv) {
+@@ -332,21 +458,48 @@ int main(int argc, char **argv) {
      point_input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
      VkGraphicsPipelineCreateInfo point_list_info = graphics_info;
      point_list_info.pInputAssemblyState = &point_input_assembly;
@@ -14520,7 +15159,7 @@ index c50b52a..7a727d0 100644
      VkPipelineInputAssemblyStateCreateInfo line_strip_input_assembly =
          input_assembly;
      line_strip_input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-@@ -356,6 +456,73 @@ int main(int argc, char **argv) {
+@@ -356,6 +509,73 @@ int main(int argc, char **argv) {
      assert(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1,
                                       &line_strip_info, NULL,
                                       &line_strip_pipeline) == VK_SUCCESS);
@@ -14594,7 +15233,7 @@ index c50b52a..7a727d0 100644
      const VkDynamicState line_width_state = VK_DYNAMIC_STATE_LINE_WIDTH;
      const VkPipelineDynamicStateCreateInfo dynamic_line_width = {
          .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-@@ -511,10 +678,20 @@ int main(int argc, char **argv) {
+@@ -511,10 +731,22 @@ int main(int argc, char **argv) {
      vkDestroyPipeline(device, line_pipeline, NULL);
      vkDestroyPipeline(device, point_list_pipeline, NULL);
      vkDestroyPipeline(device, dynamic_line_pipeline, NULL);
@@ -14607,7 +15246,9 @@ index c50b52a..7a727d0 100644
      vkDestroyPipeline(device, line_list_pipeline, NULL);
      vkDestroyPipeline(device, graphics_pipeline, NULL);
 +    vkDestroyPipeline(device, native_graphics_pipeline, NULL);
-+    vkDestroyPipeline(device, clamp_graphics_pipeline, NULL);
++vkDestroyPipeline(device, clamp_graphics_pipeline, NULL);
++vkDestroyPipeline(device, unclipped_graphics_pipeline, NULL);
++vkDestroyPipeline(device, clipped_clamp_graphics_pipeline, NULL);
 +    vkDestroyPipeline(device, alpha_to_one_pipeline, NULL);
 +    vkDestroyPipeline(device, dynamic_rendering_pipeline, NULL);
      vkDestroyPipeline(device, compute_pipeline, NULL);
@@ -14615,7 +15256,7 @@ index c50b52a..7a727d0 100644
      vkDestroyRenderPass(device, render_pass, NULL);
      vkDestroyRenderPass(device, msaa_render_pass, NULL);
      vkDestroyPipelineLayout(device, graphics_layout, NULL);
-@@ -523,6 +700,7 @@ int main(int argc, char **argv) {
+@@ -523,6 +755,7 @@ int main(int argc, char **argv) {
      vkDestroyDescriptorSetLayout(device, sampled_set, NULL);
      vkDestroyDescriptorSetLayout(device, empty_set, NULL);
      vkDestroyShaderModule(device, compute, NULL);
@@ -14934,10 +15575,10 @@ index fe6bd77..93eda09 100644
      vkDestroyDevice(device, NULL);
 diff --git a/tests/zink_profile.c b/tests/zink_profile.c
 new file mode 100644
-index 0000000..b176452
+index 0000000..fce4b1f
 --- /dev/null
 +++ b/tests/zink_profile.c
-@@ -0,0 +1,203 @@
+@@ -0,0 +1,218 @@
 +#include <vulkan/vulkan.h>
 +
 +#include <stdio.h>
@@ -15013,6 +15654,7 @@ index 0000000..b176452
 +        VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
 +        VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME,
 +        VK_EXT_ROBUSTNESS_2_EXTENSION_NAME,
++        VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
 +    };
 +    unsigned extension_gaps = 0;
 +    for (uint32_t i = 0; i < sizeof(required_extensions) /
@@ -15043,9 +15685,14 @@ index 0000000..b176452
 +    VkPhysicalDeviceRobustness2FeaturesEXT robustness2 = {
 +        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
 +    };
++    VkPhysicalDeviceDepthClipEnableFeaturesEXT depth_clip = {
++        .sType =
++            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT,
++        .pNext = &robustness2,
++    };
 +    VkPhysicalDeviceScalarBlockLayoutFeatures scalar = {
 +        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES,
-+        .pNext = &robustness2,
++        .pNext = &depth_clip,
 +    };
 +    VkPhysicalDeviceTimelineSemaphoreFeatures timeline = {
 +        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES,
@@ -15099,6 +15746,7 @@ index 0000000..b176452
 +                              "timelineSemaphore");
 +    REQUIRE_EXTENSION_FEATURE(scalar.scalarBlockLayout, "scalarBlockLayout");
 +    REQUIRE_EXTENSION_FEATURE(robustness2.nullDescriptor, "nullDescriptor");
++    REQUIRE_EXTENSION_FEATURE(depth_clip.depthClipEnable, "depthClipEnable");
 +#undef REQUIRE_EXTENSION_FEATURE
 +
 +    if (robustness2.nullDescriptor && has_extension(
@@ -15115,15 +15763,23 @@ index 0000000..b176452
 +                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
 +            .nullDescriptor = VK_TRUE,
 +        };
-+        const char *const requested_extension =
-+            VK_EXT_ROBUSTNESS_2_EXTENSION_NAME;
++        VkPhysicalDeviceDepthClipEnableFeaturesEXT requested_depth_clip = {
++            .sType =
++                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT,
++            .pNext = &requested,
++            .depthClipEnable = VK_TRUE,
++        };
++        const char *const requested_extensions[] = {
++            VK_EXT_ROBUSTNESS_2_EXTENSION_NAME,
++            VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
++        };
 +        const VkDeviceCreateInfo device_info = {
 +            .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-+            .pNext = &requested,
++            .pNext = &requested_depth_clip,
 +            .queueCreateInfoCount = 1u,
 +            .pQueueCreateInfos = &queue,
-+            .enabledExtensionCount = 1u,
-+            .ppEnabledExtensionNames = &requested_extension,
++            .enabledExtensionCount = 2u,
++            .ppEnabledExtensionNames = requested_extensions,
 +        };
 +        VkDevice device = VK_NULL_HANDLE;
 +        if (vkCreateDevice(physical, &device_info, NULL, &device) !=

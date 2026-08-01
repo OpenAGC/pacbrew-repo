@@ -16,24 +16,29 @@ examples, and bundled PSBC packaging disabled. The dedicated
 `ps5-payload-openagc-psbc` recipe builds the runtime compiler archive and
 installs its public header before Vulkan-PS5 is configured.
 
-The effective 2026-08-01 candidate revisions are OpenAGC `90e93f0`,
-openagc-psbc `8d36ecc`, Vulkan-PS5 `3b4da53`, Mesa-Zink `ba27d45`, and SDL2
-`e090904`. Each recipe reconstructs that revision from a reachable immutable
+The effective 2026-08-01 candidate revisions are OpenAGC `34cbceb`,
+openagc-psbc `8d36ecc`, Vulkan-PS5 `6610cfd`, Mesa-Zink `6dbc12f`, and SDL2
+`09ba4a9`. Each recipe reconstructs that revision from a reachable immutable
 archive plus the SHA-256-checked patch in its package directory. These are
-host-, sanitizer-, package-relocation-, Prospero-build-, and FW 5.500.008-
-qualified candidates. The SDL2 extension recipes separately pin the current
-upstream SDL2 maintenance revisions listed in their `PKGBUILD` files; they
-must not follow the incompatible SDL3 default branches.
+host-, sanitizer-, package-relocation-, Prospero-build-, FW 5.500.008-, and FW
+11.600.005-qualified candidates. SDL is also published on the OpenAGC
+`release-2.30.x-ps5` branch, which the SDL2 recipe uses as its immutable source
+repository. The SDL2 extension recipes separately pin the current upstream
+SDL2 maintenance revisions listed in their `PKGBUILD` files; they must not
+follow the incompatible SDL3 default branches.
 
-The exact artifacts used by the two immediate guarded FW 5.500.008 passes are:
+The exact artifacts used by three guarded FW 11.600.005 passes and the two
+immediate FW 5.500.008 replays are:
 
 - `testps5zink`: `95da10acf89da3e35865890874034b8bffef1c563417309a0e4bb98404540ad9`
-- `libvulkan_ps5.so`: `f2f2a176d0dc4dcb14942471af41d9fa6eebdeaba134084a52de280932b71f52`
+- `libvulkan_ps5.so`: `eacc4cf3dd1c15983e9f78482d65b14250d073a161c0b02433087eaeb5b6d271`
 - `libEGL.so.1.0.0`: `0d2922b30b3dbbe25f060331043bb4a4732272d0813023568381306528913fc1`
-- `libgallium-26.3.0-devel.so`: `9da905ef314e3362631406b1d85e013071b7fc80661cb663c7c40920d23eef85`
+- `libgallium-26.3.0-devel.so`: `75f3c3fcd229387557d4649af9eee293ac485feeaea1904e48649370565b6b5f`
 
-Both runs returned exact RGBA `64,128,191,255`, presented, released every
-native child, self-exited, and immediately relaunched without reboot.
+All five runs returned exact RGBA `64,128,191,255`, presented, released every
+native child, self-exited, and immediately relaunched without reboot. The Mesa
+pin retains `$ORIGIN` on `libEGL` and removes Gallium's redundant identical
+RUNPATH, the packaging correction required for deterministic FW 5.50 loading.
 
 The current OpenAGC pin exposes explicit gfx1013 Wave32 and Wave64 compute
 dispatch modes. The matching Vulkan-PS5 pin completes the native runtime
@@ -109,8 +114,8 @@ Vulkan-PS5, and Mesa-Zink, uses the installed `OpenAGCConfig.cmake`, and install
 interface. OpenAGC remains responsible for deciding whether the target can use
 its native renderer. SDL retains its software and OSMesa paths; the Zink path
 is explicit, fail-closed, and qualified for EGL readback, visible WSI
-presentation, complete teardown, and immediate relaunch on FW 5.500.008. FW
-11.60 replay is deferred until that endpoint is available.
+presentation, complete teardown, and immediate relaunch on FW 5.500.008 and FW
+11.600.005.
 
 `ci-libs.sh` builds Mesa-Zink after Vulkan-PS5 and before SDL2. The older Mesa
 22.1.7 package remains later in the list because it supplies the separate
@@ -125,7 +130,11 @@ its SDL2 integration and declares SDL2 as a runtime dependency.
 
 The six `SDL2_*` recipes are pinned to the latest commit of their SDL2,
 main, or master maintenance branch as appropriate, with immutable archive
-checksums. SDL2_gfx's latest commit no longer carries an Autotools build, so
+checksums. On 2026-08-01 the four libsdl-org recipes were verified against the
+`SDL2` branch rather than their incompatible SDL3 default branch; their
+existing pins were already current. SDL2_gfx was also already at upstream
+HEAD, while SDL2_kitchensink advanced to `b01841c`. SDL2_gfx's latest commit
+no longer carries an Autotools build, so
 its recipe supplies a minimal checked CMake build for the four upstream source
 files and installs the same public headers and static `libSDL2_gfx.a` surface.
 
