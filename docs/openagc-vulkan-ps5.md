@@ -16,16 +16,24 @@ examples, and bundled PSBC packaging disabled. The dedicated
 `ps5-payload-openagc-psbc` recipe builds the runtime compiler archive and
 installs its public header before Vulkan-PS5 is configured.
 
-The effective 2026-08-01 candidate revisions are OpenAGC `a1b1f31`,
-openagc-psbc `a95a68d`, Vulkan-PS5 `075d0bf`, Mesa-Zink `ffaa6a7`, and SDL2
-`2a3fc0e`. The OpenAGC, Vulkan-PS5, Mesa-Zink, and SDL2 recipes reconstruct
-those revisions from a reachable immutable archive plus the checked patch in
-the package directory; openagc-psbc pins its revision directly. These are
-host-, package-, and Prospero-build-qualified candidates. Their final ELF and
-library hashes remain deliberately unpinned until the guarded FW 5.50 EGL
-readback, visible presentation, teardown, and immediate-relaunch sequence
-passes. The SDL2 extension recipes separately pin their current upstream
-maintenance revisions listed in their `PKGBUILD` files.
+The effective 2026-08-01 candidate revisions are OpenAGC `90e93f0`,
+openagc-psbc `8d36ecc`, Vulkan-PS5 `e62f5bb`, Mesa-Zink `ba27d45`, and SDL2
+`e090904`. Each recipe reconstructs that revision from a reachable immutable
+archive plus the SHA-256-checked patch in its package directory. These are
+host-, sanitizer-, package-relocation-, Prospero-build-, and FW 5.500.008-
+qualified candidates. The SDL2 extension recipes separately pin the current
+upstream SDL2 maintenance revisions listed in their `PKGBUILD` files; they
+must not follow the incompatible SDL3 default branches.
+
+The exact artifacts used by the two immediate guarded FW 5.500.008 passes are:
+
+- `testps5zink`: `95da10acf89da3e35865890874034b8bffef1c563417309a0e4bb98404540ad9`
+- `libvulkan_ps5.so`: `f2f2a176d0dc4dcb14942471af41d9fa6eebdeaba134084a52de280932b71f52`
+- `libEGL.so.1.0.0`: `0d2922b30b3dbbe25f060331043bb4a4732272d0813023568381306528913fc1`
+- `libgallium-26.3.0-devel.so`: `9da905ef314e3362631406b1d85e013071b7fc80661cb663c7c40920d23eef85`
+
+Both runs returned exact RGBA `64,128,191,255`, presented, released every
+native child, self-exited, and immediately relaunched without reboot.
 
 The current OpenAGC pin exposes explicit gfx1013 Wave32 and Wave64 compute
 dispatch modes. The matching Vulkan-PS5 pin completes the native runtime
@@ -44,12 +52,13 @@ submission failure latching, and exact renderer-selection probes. The
 Vulkan-PS5 pin fixes retirement of the active VideoOut image before swapchain
 presentation resources are destroyed.
 
-The pinned `openagc-psbc` archive now contains its Mesa compiler sources and
+The effective `openagc-psbc` source contains its Mesa compiler sources and
 generated-header inputs directly. It does not use sibling source repositories,
-symlinks, submodules, or pacbrew's Mesa package. Its Prospero build regenerates
-the derived Mesa sources and produces `libopenagc_psbc.a` from the immutable
-archive. Vulkan-PS5 and the compiler package are therefore both enabled in
-`ci-libs.sh` in dependency order.
+symlinks, submodules, or pacbrew's Mesa package. Its checked integration patch
+adds the Zink descriptor/deref lowering proven by the pinned compiler commit;
+the Prospero build regenerates the derived Mesa sources and produces
+`libopenagc_psbc.a`. Vulkan-PS5 and the compiler package are therefore both
+enabled in `ci-libs.sh` in dependency order.
 
 ## Mesa runtime separation
 
@@ -99,8 +108,9 @@ Vulkan-PS5, and Mesa-Zink, uses the installed `OpenAGCConfig.cmake`, and install
 `prospero-sdl2-config` for packages that use SDL's traditional configure
 interface. OpenAGC remains responsible for deciding whether the target can use
 its native renderer. SDL retains its software and OSMesa paths; the Zink path
-is explicit and fail-closed until its hardware EGL/readback and visible WSI
-qualification gates are complete.
+is explicit, fail-closed, and qualified for EGL readback, visible WSI
+presentation, complete teardown, and immediate relaunch on FW 5.500.008. FW
+11.60 replay is deferred until that endpoint is available.
 
 `ci-libs.sh` builds Mesa-Zink after Vulkan-PS5 and before SDL2. The older Mesa
 22.1.7 package remains later in the list because it supplies the separate

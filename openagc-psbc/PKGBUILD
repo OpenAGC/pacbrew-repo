@@ -1,5 +1,5 @@
 pkgname=ps5-payload-openagc-psbc
-pkgver=0.1.0.r20260801.ga95a68d
+pkgver=0.1.0.r20260801.g8d36ecc
 pkgrel=1
 pkgdesc='OpenAGC runtime SPIR-V compiler for PS5 payloads'
 arch=('any')
@@ -7,9 +7,12 @@ url='https://github.com/OpenAGC/openagc-psbc'
 license=('MIT')
 options=(!strip libtool staticlibs)
 
-_commit=a95a68da0b379df6a7e5f145958b3cedaab1c897
-source=("openagc-psbc-${_commit}.tar.gz::https://github.com/OpenAGC/openagc-psbc/archive/${_commit}.tar.gz")
-sha256sums=('8740089c307f6e83a32cf3904ca66f1d2eae9a3859d73168d165f9be13b238c4')
+_commit=8d36ecc2ceab99a9de014cae7cf2441c2dcba660
+_base_commit=a95a68da0b379df6a7e5f145958b3cedaab1c897
+source=("openagc-psbc-${_base_commit}.tar.gz::https://github.com/OpenAGC/openagc-psbc/archive/${_base_commit}.tar.gz"
+	'zink-compiler-integration.patch')
+sha256sums=('8740089c307f6e83a32cf3904ca66f1d2eae9a3859d73168d165f9be13b238c4'
+	'394a6ce8ef6c89a5fda0ff808596c5d7e92593e5a1e5ef96961760515fcb22de')
 
 groups=('ps5-payload-dev')
 depends=('ps5-payload-libcxx')
@@ -20,11 +23,14 @@ prepare() {
     if [ -z "${PS5_PAYLOAD_SDK}" ]; then
 	export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
     fi
+
+    cd "openagc-psbc-${_base_commit}"
+    patch -Np1 -i "${srcdir}/zink-compiler-integration.patch"
 }
 
 build() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
-    cd "openagc-psbc-${_commit}"
+    cd "openagc-psbc-${_base_commit}"
 
     ${MAKE} -f Makefile.prospero \
 	OPENAGC_INCLUDE="${PS5_SYSROOT}${PREFIX}/include" \
@@ -34,7 +40,7 @@ build() {
 
 package() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
-    cd "openagc-psbc-${_commit}"
+    cd "openagc-psbc-${_base_commit}"
 
     install -Dm644 libopenagc_psbc.prospero.a \
 	"${pkgdir}/${PS5_SYSROOT}${PREFIX}/lib/libopenagc_psbc.a"

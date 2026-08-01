@@ -1,5 +1,5 @@
 pkgname=ps5-payload-openagc
-pkgver=0.2.0.r20260801.ga1b1f31
+pkgver=0.2.0.r20260801.g90e93f0
 pkgrel=1
 pkgdesc='Open AGC graphics and VideoOut library for PS5 payloads'
 arch=('any')
@@ -7,11 +7,12 @@ url='https://github.com/OpenAGC/OpenAGC'
 license=('Apache-2.0')
 options=(!strip libtool staticlibs)
 
-_commit=af2c56975bc1e4b29fb1637a6690c1ffe1c5e945
-source=("OpenAGC-${_commit}.tar.gz::https://github.com/OpenAGC/OpenAGC/archive/${_commit}.tar.gz"
+_commit=90e93f059785c781b1c688ab992fd7cb63f4d1f9
+_base_commit=af2c56975bc1e4b29fb1637a6690c1ffe1c5e945
+source=("OpenAGC-${_base_commit}.tar.gz::https://github.com/OpenAGC/OpenAGC/archive/${_base_commit}.tar.gz"
 	'native-runtime-migration.patch')
 sha256sums=('c932ca4476f10ff62e45f35966abf5431ff5f24e20481696ac3ff407eac86e53'
-	'0ebb39308fbd9b2c7326e9bfb733ad641640a2caae9ce72766b74112659d9460')
+	'b4ec243b4638b5beb60cb9542cb2823b2b054e578660470277e05707eaa84bd0')
 
 groups=('ps5-payload-dev')
 makedepends=('ps5-payload-sdk')
@@ -21,13 +22,13 @@ prepare() {
 	export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
     fi
 
-    cd "OpenAGC-${_commit}"
+    cd "OpenAGC-${_base_commit}"
     patch -Np1 -i "${srcdir}/native-runtime-migration.patch"
 }
 
 build() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
-    cd "OpenAGC-${_commit}"
+    cd "OpenAGC-${_base_commit}"
 
     ${CMAKE} -S . -B build \
 	-DCMAKE_BUILD_TYPE=Release \
@@ -43,7 +44,7 @@ build() {
 
 package() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
-    cd "OpenAGC-${_commit}"
+    cd "OpenAGC-${_base_commit}"
 
     DESTDIR="${pkgdir}/${PS5_SYSROOT}" ${CMAKE} --install build
     ${PS5_CROSS_FIX_ROOT} "${pkgdir}/${PS5_SYSROOT}/${PREFIX}"

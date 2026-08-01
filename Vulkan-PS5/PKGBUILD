@@ -1,5 +1,5 @@
 pkgname=ps5-payload-vulkan-ps5
-pkgver=0.1.0.r20260801.g075d0bf
+pkgver=0.1.0.r20260801.ge62f5bb
 pkgrel=1
 pkgdesc='OpenAGC-backed Vulkan implementation for PS5 payloads'
 arch=('any')
@@ -7,12 +7,13 @@ url='https://github.com/OpenAGC/Vulkan-PS5'
 license=('MIT')
 options=(!strip libtool staticlibs)
 
-_commit=b783205ad8e1cfa56e75922a8b480d2d835fc27b
-source=("Vulkan-PS5-${_commit}.tar.gz::https://github.com/OpenAGC/Vulkan-PS5/archive/${_commit}.tar.gz"
+_commit=e62f5bbec65420c5ad2f16e329e80e8cb9b56722
+_base_commit=b783205ad8e1cfa56e75922a8b480d2d835fc27b
+source=("Vulkan-PS5-${_base_commit}.tar.gz::https://github.com/OpenAGC/Vulkan-PS5/archive/${_base_commit}.tar.gz"
 	'native-runtime-migration.patch'
 	'pacbrew-installed-dependencies.patch')
 sha256sums=('baa4851e2854e0c367172f321cd4b3b67472f45d1e98ceb82ced1df50fe11091'
-	'ab819001e00f904b87dfef352f34411a0a3d020a812509366da3b32e7b025951'
+	'0e04622de677a27f262f03f1593a2c76d7c71ca3e614208b05def0639d22f642'
 	'97ea38027fad63050df46d4566e6696fb71da57450c11b1fa970dcbeee3bef94')
 
 groups=('ps5-payload-dev')
@@ -32,14 +33,14 @@ prepare() {
 	return 1
     fi
 
-    cd "Vulkan-PS5-${_commit}"
+    cd "Vulkan-PS5-${_base_commit}"
     patch -Np1 -i "${srcdir}/native-runtime-migration.patch"
     patch -Np1 -i "${srcdir}/pacbrew-installed-dependencies.patch"
 }
 
 build() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
-    cd "Vulkan-PS5-${_commit}"
+    cd "Vulkan-PS5-${_base_commit}"
 
     ${CMAKE} -S . -B build \
 	-DCMAKE_BUILD_TYPE=Release \
@@ -58,7 +59,7 @@ build() {
 
 package() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
-    cd "Vulkan-PS5-${_commit}"
+    cd "Vulkan-PS5-${_base_commit}"
 
     DESTDIR="${pkgdir}/${PS5_SYSROOT}" ${CMAKE} --install build
     ${PS5_CROSS_FIX_ROOT} "${pkgdir}/${PS5_SYSROOT}/${PREFIX}"

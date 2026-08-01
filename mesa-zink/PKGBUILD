@@ -1,5 +1,5 @@
 pkgname=ps5-payload-mesa-zink
-pkgver=26.3.0_devel.r20260801.gffaa6a7
+pkgver=26.3.0_devel.r20260801.gba27d45
 pkgrel=1
 pkgdesc='Pinned Mesa EGL and Zink runtime for Vulkan-PS5'
 arch=('any')
@@ -7,13 +7,14 @@ url='https://gitlab.freedesktop.org/mesa/mesa'
 license=('MIT AND BSD-3-Clause AND SGI-B-2.0')
 options=(!strip libtool)
 
-_commit=44e18d3d7783c751fd77aeba01bbff28db97945a
+_commit=ba27d457971d7621f239b0e0a76b98f59ce533b0
+_base_commit=44e18d3d7783c751fd77aeba01bbff28db97945a
 _mesa_libver=26.3.0-devel
-source=("mesa-${_commit}.tar.gz::https://gitlab.freedesktop.org/mesa/mesa/-/archive/${_commit}/mesa-${_commit}.tar.gz"
+source=("mesa-${_base_commit}.tar.gz::https://gitlab.freedesktop.org/mesa/mesa/-/archive/${_base_commit}/mesa-${_base_commit}.tar.gz"
 	'prospero-zink.patch'
 	'ps5-mesa-cross.ini')
 sha256sums=('256ed333fc8ab64c6778e7c333061163633e873759abb2136c4a7a363b6decc8'
-	'7f39685267676399a1a8a15d402fe2076b16032277bf97fcd73ec7ba8f814641'
+	'51c8547b6d46a7d30f66b448657f8c467d782d20e99eae5d36253a81d784926b'
 	'240907b9debbdb61f17941e0ec7d6bc33de67bf02a5ef5ec221a5132dd9f5069')
 
 groups=('ps5-payload-dev' 'ps5-payload-gl')
@@ -25,13 +26,13 @@ prepare() {
 	export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
     fi
 
-    cd "mesa-${_commit}"
+    cd "mesa-${_base_commit}"
     patch -Np1 -i "${srcdir}/prospero-zink.patch"
 }
 
 build() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
-    cd "mesa-${_commit}"
+    cd "mesa-${_base_commit}"
 
     unset CFLAGS CXXFLAGS CPPFLAGS LDFLAGS PKG_CONFIG_PATH
     ${MESON} setup builddir \
@@ -60,7 +61,7 @@ build() {
 
 package() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
-    cd "mesa-${_commit}"
+    cd "mesa-${_base_commit}"
 
     ${MESON} install -C builddir --destdir "${srcdir}/runtime-stage"
     install -Dm755 \
