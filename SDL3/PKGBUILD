@@ -1,0 +1,83 @@
+pkgname=ps5-payload-sdl3
+pkgver=r22442.642d5f82b
+pkgrel=1
+pkgdesc='A library for portable low-level access to video, audio, joysticks, and input on PS5'
+arch=('any')
+url='https://github.com/OpenAGC/SDL3'
+license=('Zlib')
+options=(!strip libtool staticlibs)
+source=('git+https://github.com/OpenAGC/SDL3.git#commit=642d5f82bd516cbdc23340c376eada88d18b1291')
+sha256sums=('SKIP')
+groups=('ps5-payload-dev' 'ps5-payload-sdl3')
+depends=('ps5-payload-mesa')
+makedepends=('ps5-payload-sdk' 'ps5-payload-libcxx')
+
+prepare() {
+    if [ -z "${PS5_PAYLOAD_SDK}" ]; then
+	export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
+    fi
+}
+
+pkgver() {
+    cd SDL3
+    printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=9 HEAD)"
+}
+
+build() {
+    source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    cd SDL3
+
+    ${CMAKE} -DCMAKE_BUILD_TYPE=Release \
+	     -DSDL_SHARED=OFF \
+	     -DSDL_STATIC=ON \
+	     -DSDL_INSTALL=ON \
+	     -DSDL_INSTALL_DOCS=OFF \
+	     -DSDL_TESTS=OFF \
+	     -DSDL_TEST_LIBRARY=OFF \
+	     -DSDL_EXAMPLES=OFF \
+	     -DSDL_AUDIO=ON \
+	     -DSDL_VIDEO=ON \
+	     -DSDL_JOYSTICK=ON \
+	     -DSDL_RENDER=ON \
+	     -DSDL_OPENGL=ON \
+	     -DSDL_OPENGLES=OFF \
+	     -DSDL_VULKAN=OFF \
+	     -DSDL_GPU=OFF \
+	     -DSDL_CAMERA=OFF \
+	     -DSDL_DIALOG=OFF \
+	     -DSDL_DUMMYAUDIO=OFF \
+	     -DSDL_DUMMYVIDEO=OFF \
+	     -DSDL_OFFSCREEN=OFF \
+	     -DSDL_HAPTIC=OFF \
+	     -DSDL_HIDAPI=OFF \
+	     -DSDL_SENSOR=OFF \
+	     -DSDL_POWER=OFF \
+	     -DSDL_TRAY=OFF \
+	     -DSDL_NOTIFICATION=OFF \
+	     -DSDL_ALSA=OFF \
+	     -DSDL_DBUS=OFF \
+	     -DSDL_IBUS=OFF \
+	     -DSDL_JACK=OFF \
+	     -DSDL_KMSDRM=OFF \
+	     -DSDL_LIBUDEV=OFF \
+	     -DSDL_LIBURING=OFF \
+	     -DSDL_OSS=OFF \
+	     -DSDL_PIPEWIRE=OFF \
+	     -DSDL_PULSEAUDIO=OFF \
+	     -DSDL_SNDIO=OFF \
+	     -DSDL_WAYLAND=OFF \
+	     -DSDL_X11=OFF \
+	     -B build \
+	     -S .
+    ${MAKE} -C build
+}
+
+package() {
+    source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    cd SDL3
+
+    export DESTDIR="${pkgdir}/${DESTDIR}"
+    ${MAKE} -C build install
+
+    ${PS5_CROSS_FIX_ROOT} "${DESTDIR}/${PREFIX}"
+}
