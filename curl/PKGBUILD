@@ -9,7 +9,7 @@ source=("https://curl.haxx.se/download/curl-${pkgver}.tar.xz")
 sha256sums=('40df79166e74aa20149365e11ee4c798a46ad57c34e4f68fd13100e2c9a91946')
 options=(!strip libtool staticlibs)
 groups=('ps5-payload-dev')
-depends=('ps5-payload-zlib' 'ps5-payload-openssl')
+depends=('ps5-payload-zlib' 'ps5-payload-openssl' 'ps5-payload-libpsl')
 makedepends=('ps5-payload-sdk' 'ps5-payload-libpsl')
 
 prepare() {
@@ -33,6 +33,7 @@ build() {
     ./configure --prefix="${PREFIX}" --host=x86_64-pc-freebsd \
 		--enable-static --disable-shared \
 		--with-openssl \
+		--with-libpsl \
 		--with-ca-bundle="${PREFIX}/etc/ca-bundle.crt" \
 		--disable-docs
     ${MAKE}
@@ -44,6 +45,15 @@ package() {
 
     export DESTDIR="${pkgdir}/${DESTDIR}"
     ${MAKE} install
+
+    # The zlib recipe does not install zlib.pc, so do not emit an
+    # unsatisfiable pkg-config Requires entry. Keep -lz in Libs.private.
+    local curlpc="${DESTDIR}/${PREFIX}/lib/pkgconfig/libcurl.pc"
+    sed -i.bak \
+	-e 's/^Requires: zlib,openssl,libpsl/Requires: openssl,libpsl/' \
+	-e 's/^Requires.private: zlib,openssl,libpsl/Requires.private: openssl,libpsl/' \
+	"${curlpc}"
+    rm -f "${curlpc}.bak"
 
     ${PS5_CROSS_FIX_ROOT} "${DESTDIR}/${PREFIX}"
 

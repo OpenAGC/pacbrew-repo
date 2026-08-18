@@ -26,7 +26,8 @@ build() {
     source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
     cd LuaJIT
 
-    ${MAKE} amalg BUILDMODE=static \
+    ${MAKE} amalg BUILDMODE=static TARGET_SYS=FreeBSD \
+	    TARGET_CFLAGS="-fPIC" TARGET_ASFLAGS="-fPIC" \
 	    CROSS="${PS5_PAYLOAD_SDK}/bin/prospero-" \
 	    DEFAULT_CC="clang" TARGET_LIBS="-lunwind" Q=
 }
@@ -36,7 +37,7 @@ package() {
     cd LuaJIT
 
     export DESTDIR="${pkgdir}/${DESTDIR}"
-    ${MAKE} install PREFIX="${PREFIX}"
+    ${MAKE} install PREFIX="${PREFIX}" TARGET_SYS=FreeBSD
 
     ${PS5_CROSS_FIX_ROOT} "${DESTDIR}/${PREFIX}"
 }

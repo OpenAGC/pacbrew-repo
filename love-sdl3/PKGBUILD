@@ -1,0 +1,83 @@
+pkgname=ps5-payload-love-sdl3
+pkgver=r5715.853f1cad4
+pkgrel=1
+pkgdesc='2D game engine using SDL3 and LuaJIT on PS5'
+arch=('any')
+url='https://github.com/love2d/love'
+license=('Zlib')
+options=(!strip libtool staticlibs)
+source=('git+https://github.com/love2d/love.git#commit=853f1cad4bb65d63f02dbcd3fa31b0c622d3abbc'
+	'0001-PS5-SDL3-interim-build.patch')
+sha256sums=('SKIP'
+	    'SKIP')
+groups=('ps5-payload-dev' 'ps5-payload-love')
+depends=('ps5-payload-sdl3' 'ps5-payload-openal-sdl3'
+	 'ps5-payload-luajit' 'ps5-payload-freetype' 'ps5-payload-harfbuzz'
+	 'ps5-payload-libmodplug' 'ps5-payload-libtheora' 'ps5-payload-libvorbis'
+	 'ps5-payload-libogg' 'ps5-payload-zlib')
+makedepends=('ps5-payload-sdk' 'ps5-payload-libcxx')
+
+prepare() {
+    if [ -z "${PS5_PAYLOAD_SDK}" ]; then
+	export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
+    fi
+
+    cd love
+    sed -i.bak 's/\r$//' CMakeLists.txt
+    rm CMakeLists.txt.bak
+    patch -Np1 -i ../0001-PS5-SDL3-interim-build.patch
+}
+
+pkgver() {
+    cd love
+    printf 'r%s.%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short=9 HEAD)"
+}
+
+build() {
+    source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    cd love
+
+    export PKG_CONFIG_SYSROOT_DIR="${PS5_SYSROOT}"
+    local hbroot="${PS5_SYSROOT}${PREFIX}"
+    local static_link_libs="-L${hbroot}/lib -lharfbuzz -lfreetype -lmodplug -ltheoradec -ltheora -lvorbisfile -lvorbis -logg -lz -lbz2 -lpng"
+
+    ${CMAKE} -DCMAKE_BUILD_TYPE=Release \
+	     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+	     -DCMAKE_PREFIX_PATH="${hbroot}" \
+	     -DLOVE_JIT=ON \
+	     -DLOVE_BUILD_VULKAN=OFF \
+	     -DSDL3_DIR="${hbroot}/lib/cmake/SDL3" \
+	     -DOpenAL_DIR="${hbroot}/lib/cmake/OpenAL" \
+	     -DFREETYPE_INCLUDE_DIRS="${hbroot}/include/freetype2" \
+	     -DFREETYPE_LIBRARY="${hbroot}/lib/libfreetype.a" \
+	     -DHARFBUZZ_INCLUDE_DIR="${hbroot}/include" \
+	     -DHARFBUZZ_LIBRARY="${hbroot}/lib/libharfbuzz.a" \
+	     -DMODPLUG_INCLUDE_DIR="${hbroot}/include" \
+	     -DMODPLUG_LIBRARY="${hbroot}/lib/libmodplug.a" \
+	     -DTHEORA_INCLUDE_DIR="${hbroot}/include" \
+	     -DTHEORA_LIBRARY="${hbroot}/lib/libtheora.a" \
+	     -DTHEORADEC_LIBRARY="${hbroot}/lib/libtheoradec.a" \
+	     -DVORBIS_INCLUDE_DIR="${hbroot}/include" \
+	     -DVORBIS_LIBRARY="${hbroot}/lib/libvorbis.a" \
+	     -DVORBISFILE_LIBRARY="${hbroot}/lib/libvorbisfile.a" \
+	     -DOGG_INCLUDE_DIR="${hbroot}/include" \
+	     -DOGG_LIBRARY="${hbroot}/lib/libogg.a" \
+	     -DZLIB_INCLUDE_DIR="${hbroot}/include" \
+	     -DZLIB_LIBRARY="${hbroot}/lib/libz.a" \
+	     -DLUAJIT_INCLUDE_DIR="${hbroot}/include/luajit-2.1" \
+	     -DLUAJIT_LIBRARY="${hbroot}/lib/libluajit-5.1.a" \
+	     -DCMAKE_EXE_LINKER_FLAGS="${static_link_libs}" \
+	     -B build \
+	     -S .
+    ${MAKE} -C build
+}
+
+package() {
+    source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    cd love
+
+    export DESTDIR="${pkgdir}/${DESTDIR}"
+    ${MAKE} -C build install
+
+    ${PS5_CROSS_FIX_ROOT} "${DESTDIR}/${PREFIX}"
+}

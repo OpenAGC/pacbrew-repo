@@ -1,0 +1,73 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -647,6 +647,14 @@ target_link_libraries(love_graphics_opengl PUBLIC
+ 	lovedep::SDL
+ )
+ 
++if(NOT DEFINED LOVE_BUILD_VULKAN)
++	if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
++		set(LOVE_BUILD_VULKAN OFF)
++	else()
++		set(LOVE_BUILD_VULKAN ON)
++	endif()
++endif()
++
+ add_library(love_graphics INTERFACE)
+ target_link_libraries(love_graphics INTERFACE
+ 	love_graphics_root
+@@ -680,7 +688,7 @@ if(APPLE)
+ 	target_link_libraries(love_graphics INTERFACE
+ 		love_graphics_metal
+ 	)
+-else()
++elseif(LOVE_BUILD_VULKAN)
+ 	add_library(love_graphics_vulkan STATIC
+ 		src/modules/graphics/vulkan/Graphics.h
+ 		src/modules/graphics/vulkan/Graphics.cpp
+@@ -1645,6 +1653,10 @@ add_library(love_3p_luahttps
+ )
+ target_link_libraries(love_3p_luahttps lovedep::Lua)
+ 
++if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
++	target_compile_definitions(love_3p_luahttps PRIVATE HTTPS_LIBRARY_LOADER_LINKTIME)
++endif()
++
+ if (APPLE)
+ 	target_sources(love_3p_luahttps PRIVATE
+ 		src/libraries/luahttps/src/apple/NSURLClient.mm
+@@ -1906,7 +1918,13 @@ if(MINGW)
+ 	set(CMAKE_RC_FLAGS ${CMAKE_RC_FLAGS} "-c 65001 --preprocessor-arg=-finput-charset=UTF-16LE")
+ endif()
+ 
+-add_library(liblove SHARED
++if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
++	set(LOVE_LIBRARY_TYPE STATIC)
++else()
++	set(LOVE_LIBRARY_TYPE SHARED)
++endif()
++
++add_library(liblove ${LOVE_LIBRARY_TYPE}
+ 	src/modules/love/love.cpp
+ 	src/modules/love/love.h
+ 	# These are here so they show up in Visual Studio:
+@@ -2187,3 +2199,5 @@ elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+ 	install(FILES platform/unix/application-x-love-game.svg
+ 			DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/mimetypes)
++elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "FreeBSD")
++	install(TARGETS love liblove)
+ endif()
+diff --git a/src/common/config.h b/src/common/config.h
+--- a/src/common/config.h
++++ b/src/common/config.h
+@@ -124,7 +124,9 @@
+ #endif
+ 
+ #if defined(LOVE_WINDOWS) || defined(LOVE_LINUX) || defined(LOVE_ANDROID)
+-#	define LOVE_GRAPHICS_VULKAN
++#	if !defined(__PROSPERO__)
++#		define LOVE_GRAPHICS_VULKAN
++#	endif
+ #endif
+ 
+ #if defined(LOVE_MACOS) || defined(LOVE_IOS)
