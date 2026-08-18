@@ -1,0 +1,30 @@
+From 6be843229e7a86821b6f9ddaf300f7bb1c70b913 Mon Sep 17 00:00:00 2001
+From: pacbrew <pacbrew@localhost>
+Date: Tue, 18 Aug 2026 00:00:00 +0800
+Subject: [PATCH] Find SDL3 in installed CMake config
+
+The static OpenAL target links Threads::Threads and SDL3::SDL3 when the SDL3
+backend is enabled. Load both dependencies before importing
+OpenALTargets.cmake so downstream CMake projects can consume OpenAL::OpenAL
+without finding them themselves first.
+---
+ OpenALConfig.cmake.in | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/OpenALConfig.cmake.in b/OpenALConfig.cmake.in
+index 4c1ad05..546da88 100644
+--- a/OpenALConfig.cmake.in
++++ b/OpenALConfig.cmake.in
+@@ -2,6 +2,10 @@ if((NOT DEFINED CMAKE_VERSION) OR (CMAKE_VERSION VERSION_LESS "3.1"))
+    message(FATAL_ERROR "CMake >= 3.1 required")
+ endif()
+ 
++include(CMakeFindDependencyMacro)
++find_dependency(Threads)
++find_dependency(SDL3 CONFIG)
++
+ include("${CMAKE_CURRENT_LIST_DIR}/OpenALTargets.cmake")
+ 
+ set(OPENAL_FOUND ON)
+-- 
+2.50.1

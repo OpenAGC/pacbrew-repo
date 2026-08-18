@@ -1,0 +1,76 @@
+pkgname=ps5-payload-openal-sdl3
+pkgver=1.25.2
+pkgrel=1
+pkgdesc='Cross-platform 3D audio library using the SDL3 PS5 audio backend'
+arch=('any')
+url='https://github.com/kcat/openal-soft'
+license=('LGPL-2.0-or-later')
+options=(!strip libtool staticlibs)
+source=("https://github.com/kcat/openal-soft/archive/refs/tags/$pkgver.tar.gz"
+	'0001-Find-SDL3-in-installed-CMake-config.patch')
+sha256sums=('fb27e5839aa11f0e5b9d33756965291fad5d6909ab928ea1f796f4a1a6877894'
+	    'cf6742aef6bfbed0508d03f5310e19d408c1ecc4cb4c6077fb08786b96f4f4ee')
+groups=('ps5-payload-dev' 'ps5-payload-openal')
+depends=('ps5-payload-sdl3' 'ps5-payload-libcxx')
+makedepends=('ps5-payload-sdk')
+
+prepare() {
+    if [ -z "${PS5_PAYLOAD_SDK}" ]; then
+	export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
+    fi
+
+    cd openal-soft-$pkgver
+    patch -Np1 -i ../0001-Find-SDL3-in-installed-CMake-config.patch
+}
+
+build() {
+    source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    cd openal-soft-$pkgver
+
+    ${CMAKE} -DCMAKE_BUILD_TYPE=Release \
+	     -DALSOFT_ENABLE_MODULES=NO \
+	     -DALSOFT_DLOPEN=NO \
+	     -DALSOFT_DLOPEN_NOTES=NO \
+	     -DALSOFT_RTKIT=NO \
+	     -DALSOFT_BACKEND_PIPEWIRE=NO \
+	     -DALSOFT_BACKEND_PULSEAUDIO=NO \
+	     -DALSOFT_BACKEND_ALSA=NO \
+	     -DALSOFT_BACKEND_OSS=NO \
+	     -DALSOFT_BACKEND_SOLARIS=NO \
+	     -DALSOFT_BACKEND_SNDIO=NO \
+	     -DALSOFT_BACKEND_JACK=NO \
+	     -DALSOFT_BACKEND_COREAUDIO=NO \
+	     -DALSOFT_BACKEND_OBOE=NO \
+	     -DALSOFT_BACKEND_OPENSL=NO \
+	     -DALSOFT_BACKEND_PORTAUDIO=NO \
+	     -DALSOFT_BACKEND_SDL2=NO \
+	     -DALSOFT_REQUIRE_SDL2=NO \
+	     -DALSOFT_BACKEND_SDL3=YES \
+	     -DALSOFT_REQUIRE_SDL3=YES \
+	     -DALSOFT_BACKEND_WAVE=NO \
+	     -DALSOFT_UTILS=NO \
+	     -DALSOFT_NO_CONFIG_UTIL=YES \
+	     -DALSOFT_EXAMPLES=NO \
+	     -DALSOFT_TESTS=NO \
+	     -DALSOFT_INSTALL=YES \
+	     -DALSOFT_INSTALL_CONFIG=NO \
+	     -DALSOFT_INSTALL_HRTF_DATA=NO \
+	     -DALSOFT_INSTALL_AMBDEC_PRESETS=NO \
+	     -DALSOFT_INSTALL_EXAMPLES=NO \
+	     -DALSOFT_INSTALL_UTILS=NO \
+	     -DALSOFT_EMBED_HRTF_DATA=YES \
+	     -DLIBTYPE=STATIC \
+	     -B build \
+	     -S .
+    ${MAKE} -C build
+}
+
+package() {
+    source "${PS5_PAYLOAD_SDK}/toolchain/prospero.sh"
+    cd openal-soft-$pkgver
+
+    export DESTDIR="${pkgdir}/${DESTDIR}"
+    ${MAKE} -C build install
+
+    ${PS5_CROSS_FIX_ROOT} "${DESTDIR}/${PREFIX}"
+}
