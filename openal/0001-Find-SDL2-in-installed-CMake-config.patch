@@ -1,0 +1,28 @@
+From 6be843229e7a86821b6f9ddaf300f7bb1c70b913 Mon Sep 17 00:00:00 2001
+From: pacbrew <pacbrew@localhost>
+Date: Tue, 18 Aug 2026 00:00:00 +0800
+Subject: [PATCH] Find SDL2 in installed CMake config
+
+The static OpenAL target links SDL2::SDL2-static when the SDL2 backend is
+enabled. Load SDL2 before importing OpenALTargets.cmake so downstream CMake
+projects can consume OpenAL::OpenAL without finding SDL2 themselves first.
+---
+ OpenALConfig.cmake.in | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/OpenALConfig.cmake.in b/OpenALConfig.cmake.in
+index 23a6f45..eec6d53 100644
+--- a/OpenALConfig.cmake.in
++++ b/OpenALConfig.cmake.in
+@@ -1,5 +1,8 @@
+ cmake_minimum_required(VERSION 3.1...3.18)
+ 
++include(CMakeFindDependencyMacro)
++find_dependency(SDL2 CONFIG)
++
+ include("${CMAKE_CURRENT_LIST_DIR}/OpenALTargets.cmake")
+ 
+ set(OPENAL_FOUND ON)
+-- 
+2.50.1
+
